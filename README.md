@@ -35,7 +35,7 @@
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/USERNAME/strak-cli.git
+git clone hhttps://github.com/rasyaathaya7212-eng/strak
 cd strak-cli
 
 # 2. Install dependencies
