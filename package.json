@@ -1,0 +1,50 @@
+{
+  "name": "strak",
+  "version": "1.0.0",
+  "description": "CLI AI Agent with Chimera Architecture - combining Claude Code, OpenClaw, and Hermes capabilities",
+  "main": "dist/index.js",
+  "bin": {
+    "strak": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "watch": "tsc --watch",
+    "start": "node dist/index.js",
+    "clean": "rimraf dist",
+    "rebuild": "npm run clean && npm run build",
+    "link": "npm link",
+    "unlink": "npm unlink -g strak",
+    "setup": "npm install && npm run build && npm link",
+    "test": "echo \"Tests coming soon\" && exit 0"
+  },
+  "keywords": [
+    "cli",
+    "ai",
+    "agent",
+    "automation",
+    "tools"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "inquirer": "^8.2.5",
+    "fs-extra": "^11.2.0",
+    "zod": "^3.22.4",
+    "uuid": "^9.0.1",
+    "terminal-image": "^2.0.0",
+    "image-to-ascii": "^3.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/inquirer": "^8.2.10",
+    "@types/fs-extra": "^11.0.4",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "rimraf": "^5.0.5"
+  }
+}

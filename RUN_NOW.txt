@@ -1,0 +1,16 @@
+⚡ QUICK START - Copy Paste Commands:
+
+1. Install & Setup:
+   npm install && npm run build && npm link
+
+2. Edit config.json (add your API key)
+
+3. Run:
+   strak
+
+4. Test:
+   > Buat file hello.txt dengan isi "Hello World"
+   > Baca file hello.txt
+   > List file di direktori ini
+
+Full guide: START_HERE.md
