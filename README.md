@@ -399,14 +399,13 @@ Built with:
 ## 📞 Contact
 
 - GitHub Issues: [Create an issue](https://github.com/USERNAME/strak-cli/issues)
-- Email: your-email@example.com
-
+- Email: ambatukam.blewww@gmail.com
 ---
 
 <div align="center">
 
-**Made with ❤️ by [Your Name]**
+**Made with ❤️ by [AI AND ME]**
 
-⭐ Star this repo if you find it useful!
+⭐ Star this repo if you find it useful!Thanks
 
 </div>

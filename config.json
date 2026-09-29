@@ -1,5 +1,5 @@
 {
-  "apiKey": "sk-qwen-50c24d57ee4027cb8dad59535d4178270c046cd732a088e8",
-  "baseUrl": "https://dattio.my.id/v1",
-  "model": "deepseek-v4-pro"
+  "apiKey": "",
+  "baseUrl": "",
+  "model": ""
 }
