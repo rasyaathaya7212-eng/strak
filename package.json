@@ -34,9 +34,7 @@
     "inquirer": "^8.2.5",
     "fs-extra": "^11.2.0",
     "zod": "^3.22.4",
-    "uuid": "^9.0.1",
-    "terminal-image": "^2.0.0",
-    "image-to-ascii": "^3.2.0"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
