@@ -7,76 +7,90 @@ import { Tool } from '../../types/index.js';
 import axios from 'axios';
 
 export const webTools: Tool[] = [
-  // Implemented: web_search (DuckDuckGo)
+  // Implemented: web_search (LangSearch API)
   {
     name: 'web_search',
-    description: 'Cari di web (multi-engine, fallback) menggunakan DuckDuckGo',
+    description: 'Cari di web menggunakan LangSearch API - fast, accurate, free',
     parameters: {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Query pencarian' },
-        max_results: { type: 'number', description: 'Maksimal hasil (default: 5)' }
+        max_results: { type: 'number', description: 'Maksimal hasil (default: 5, max: 50)' },
+        include_text: { type: 'boolean', description: 'Include full webpage text (default: false)' }
       },
       required: ['query']
     },
     handler: async (args: any) => {
       try {
-        const query = encodeURIComponent(args.query);
-        const maxResults = args.max_results || 5;
+        const maxResults = Math.min(args.max_results || 5, 50);
+        const includeText = args.include_text || false;
 
-        const response = await axios.get(`https://html.duckduckgo.com/html/?q=${query}`, {
+        // LangSearch API configuration
+        const LANGSEARCH_API_KEY = 'sk-fcf23ae7dc0c4f1e93be500c1b8e1889';
+        const LANGSEARCH_ENDPOINT = 'https://api.langsearch.com/v1/web-search';
+
+        const requestBody: any = {
+          query: args.query,
+          count: maxResults
+        };
+
+        // Add text content if requested
+        if (includeText) {
+          requestBody.contents = {
+            text: {
+              max_characters: 3000
+            }
+          };
+        }
+
+        const response = await axios.post(LANGSEARCH_ENDPOINT, requestBody, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'Authorization': `Bearer ${LANGSEARCH_API_KEY}`,
+            'Content-Type': 'application/json'
           },
-          timeout: 10000
+          timeout: 30000
         });
 
-        const html = response.data;
-        const results = [];
-        const resultRegex = /<a[^>]*class="result__a"[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/g;
-        const snippetRegex = /<a[^>]*class="result__snippet"[^>]*>(.*?)<\/a>/g;
-
-        let match;
-        let count = 0;
-        const urls = [];
-        const titles = [];
-
-        while ((match = resultRegex.exec(html)) !== null && count < maxResults) {
-          const url = match[1];
-          const title = match[2].replace(/<[^>]*>/g, '').trim();
-          if (url && title && !url.includes('duckduckgo.com')) {
-            urls.push(url);
-            titles.push(title);
-            count++;
-          }
+        // Check response code
+        if (String(response.data.code) !== '200') {
+          return `Error dari LangSearch API: ${response.data.message || 'Unknown error'}`;
         }
 
-        const snippets = [];
-        count = 0;
-        while ((match = snippetRegex.exec(html)) !== null && count < maxResults) {
-          const snippet = match[1].replace(/<[^>]*>/g, '').trim();
-          if (snippet) {
-            snippets.push(snippet);
-            count++;
-          }
-        }
-
-        for (let i = 0; i < Math.min(urls.length, maxResults); i++) {
-          results.push({
-            title: titles[i] || 'No title',
-            url: urls[i],
-            snippet: snippets[i] || 'No snippet'
-          });
-        }
+        const results = response.data.data?.webPages?.value || [];
 
         if (results.length === 0) {
           return `Tidak ada hasil untuk: ${args.query}`;
         }
 
-        return `Hasil pencarian "${args.query}":\n\n${results.map((r, i) => 
-          `${i + 1}. ${r.title}\n   ${r.snippet}\n   URL: ${r.url}\n`
-        ).join('\n')}`;
+        // Format results
+        let output = `🔍 Hasil pencarian "${args.query}" (${results.length} hasil):\n\n`;
+        
+        results.forEach((page: any, index: number) => {
+          output += `${index + 1}. **${page.name || 'No title'}**\n`;
+          
+          if (includeText && page.text) {
+            // Show full text (truncated)
+            output += `   ${page.text.substring(0, 500)}${page.text.length > 500 ? '...' : ''}\n`;
+          } else if (page.snippet) {
+            // Show snippet
+            output += `   ${page.snippet}\n`;
+          }
+          
+          output += `   🔗 ${page.url}\n`;
+          
+          if (page.datePublished) {
+            output += `   📅 ${page.datePublished}\n`;
+          }
+          
+          output += `\n`;
+        });
+
+        return output;
       } catch (error: any) {
+        // Fallback error message
+        if (error.response) {
+          return `Error LangSearch API (${error.response.status}): ${error.response.data?.message || error.message}`;
+        }
         return `Error mencari: ${error.message}`;
       }
     }

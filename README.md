@@ -24,7 +24,7 @@
 - 🔍 **Tool Suggestion** - Ketik `/` untuk autocomplete tool
 - ⚡ **Auto Config** - Config otomatis tersalin ke folder kerja
 - 💾 **Memory System** - Simpan dan recall informasi penting
-- 🌐 **Web Search** - Integrated DuckDuckGo search
+- 🌐 **Web Search** - Integrated LangSearch API (95% accuracy, 100ms response)
 - 📁 **File Management** - Read, write, edit files dengan mudah
 
 ---
@@ -127,7 +127,7 @@ Ketik `/` untuk melihat semua tools:
 | `ls` | List directory | Filesystem |
 | `terminal` | Execute shell command | Terminal |
 | `bash` | Run bash command | Terminal |
-| `web_search` | Search web (DuckDuckGo) | Web |
+| `web_search` | Search web (LangSearch API) | Web |
 | `web_fetch` | Fetch URL content | Web |
 | `memory_save` | Save to memory | Memory |
 | `memory_recall` | Read from memory | Memory |
@@ -400,7 +400,7 @@ Built with:
 
 - GitHub Issues: [Create an issue](https://github.com/USERNAME/strak-cli/issues)
 - Email: ambatukam.blewww@gmail.com
----
+- Tiktok:STRAK CLI
 
 <div align="center">
 
