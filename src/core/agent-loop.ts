@@ -70,13 +70,23 @@ export class AgentLoop {
       });
     }
 
-    // Main loop
+    // Main loop - No hard limit, agent works until task is complete
     let iterations = 0;
-    const maxIterations = 10; // Prevent infinite loops
+    const warningThreshold = 15; // Show warning after 15 iterations
+    let lastToolCalls: string[] = [];
+    let repeatCount = 0;
 
-    while (iterations < maxIterations) {
+    while (true) { // Infinite loop - agent must complete the task!
       iterations++;
 
+      // Show progress if taking long
+      if (iterations > warningThreshold && ui) {
+        ui.info(`Working hard on this (iteration ${iterations})...`);
+      }
+
+      // Detect if agent is stuck in a loop (same tools repeatedly)
+      const currentToolCallsStr = JSON.stringify(lastToolCalls);
+      
       // 1. Prepare LLM request with conversation history and tool definitions
       const request: LLMRequest = {
         model: this.config.model,
@@ -86,12 +96,34 @@ export class AgentLoop {
         maxTokens: 4096
       };
 
+      // Add guidance if iterations are high
+      if (iterations > 20) {
+        request.messages = [
+          {
+            role: 'system',
+            content: 'You have been working on this task for a while. Please finish it now with a final response. Do not use more tools unless absolutely necessary.'
+          },
+          ...request.messages
+        ];
+      }
+
       // 2. Call LLM
+      if (ui) {
+        ui.startThinking(`Deciding next action (step ${iterations})`);
+      }
+      
       const response = await this.llmRouter.chat(request);
 
       // 3. Check if LLM wants to use tools
       if (!response.toolCalls || response.toolCalls.length === 0) {
         // No tools requested, task is complete
+        if (ui) {
+          ui.stopThinking();
+          if (iterations > warningThreshold) {
+            ui.success(`Task completed after ${iterations} steps!`);
+          }
+        }
+        
         this.sessionManager.addMessage({
           role: 'assistant',
           content: response.content
@@ -99,7 +131,56 @@ export class AgentLoop {
         return response.content;
       }
 
-      // 4. Execute each requested tool
+      // Track tool calls for loop detection
+      const currentTools = response.toolCalls.map(tc => tc.name);
+      if (JSON.stringify(currentTools) === currentToolCallsStr) {
+        repeatCount++;
+        if (repeatCount > 3) {
+          // Same tools called 3+ times in a row - force conclusion
+          if (ui) {
+            ui.stopThinking();
+            ui.info('Finalizing response...');
+          }
+          
+          const finalRequest: LLMRequest = {
+            model: this.config.model,
+            messages: [
+              ...this.sessionManager.getMessages(),
+              {
+                role: 'system',
+                content: 'Please provide a final answer now based on the information you have gathered. Do NOT use any more tools.'
+              }
+            ],
+            temperature: 0.7,
+            maxTokens: 4096
+          };
+          
+          const finalResponse = await this.llmRouter.chat(finalRequest);
+          this.sessionManager.addMessage({
+            role: 'assistant',
+            content: finalResponse.content
+          });
+          return finalResponse.content;
+        }
+      } else {
+        repeatCount = 0;
+      }
+      lastToolCalls = currentTools;
+
+      // 4. AI speaks about what it will do next
+      if (ui && response.toolCalls.length > 0) {
+        ui.stopThinking();
+        
+        if (response.toolCalls.length === 1) {
+          const tool = response.toolCalls[0];
+          ui.aiSpeaks(`I'll use the ${tool.name} tool to help with your request.`);
+        } else {
+          const toolNames = response.toolCalls.map(t => t.name).join(', ');
+          ui.aiSpeaks(`I'll use multiple tools: ${toolNames}`);
+        }
+      }
+
+      // 5. Execute each requested tool
       const toolResults: Message[] = [];
       
       for (const toolCall of response.toolCalls) {
@@ -135,9 +216,7 @@ export class AgentLoop {
       }
 
       // 7. Loop back to call LLM again with tool results
+      // No break - continue until LLM returns without tool calls
     }
-
-    // Max iterations reached
-    return 'Task execution took too many iterations. Please try breaking down your request into smaller tasks.';
   }
 }

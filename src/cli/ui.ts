@@ -12,9 +12,59 @@ export class UI {
   private spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
   private spinnerIndex = 0;
   private spinnerInterval: NodeJS.Timeout | null = null;
+  private detailedResults: Map<string, string> = new Map(); // Store full results
+  private resultCounter = 0;
 
   constructor(config: any) {
     this.config = config;
+    this.setupKeyboardListener();
+  }
+
+  /**
+   * Setup keyboard listener for Ctrl+O
+   */
+  private setupKeyboardListener(): void {
+    if (process.stdin.isTTY) {
+      const readline = require('readline');
+      readline.emitKeypressEvents(process.stdin);
+      
+      if (process.stdin.setRawMode) {
+        process.stdin.setRawMode(true);
+      }
+
+      process.stdin.on('keypress', (str, key) => {
+        if (key.ctrl && key.name === 'o') {
+          this.showDetailedResults();
+        }
+        
+        // Allow Ctrl+C to exit
+        if (key.ctrl && key.name === 'c') {
+          process.exit();
+        }
+      });
+    }
+  }
+
+  /**
+   * Show all detailed results
+   */
+  private showDetailedResults(): void {
+    console.log('\n');
+    console.log(chalk.cyan('  ╔═══════════════════════════════════════════════════════════╗'));
+    console.log(chalk.cyan('  ║') + chalk.white.bold('  DETAILED RESULTS (Ctrl+O)') + ' '.repeat(32) + chalk.cyan('║'));
+    console.log(chalk.cyan('  ╚═══════════════════════════════════════════════════════════╝'));
+    console.log('');
+
+    if (this.detailedResults.size === 0) {
+      console.log(chalk.gray('  No detailed results available yet.'));
+    } else {
+      for (const [id, result] of this.detailedResults) {
+        console.log(chalk.yellow(`  [${id}]`));
+        console.log(chalk.white('  ' + result.split('\n').join('\n  ')));
+        console.log(chalk.gray('  ' + '─'.repeat(60)));
+        console.log('');
+      }
+    }
   }
 
   /**
@@ -52,6 +102,8 @@ export class UI {
     console.log(`  ${chalk.white('Directory: ')}${chalk.gray(currentDir)}`);
     console.log(infoBar);
     console.log('');
+    console.log(chalk.gray('  💡 Tip: Press ') + chalk.cyan.bold('Ctrl+O') + chalk.gray(' to view detailed tool results'));
+    console.log('');
   }
 
   /**
@@ -75,6 +127,29 @@ export class UI {
         chalk.magenta(`  ${this.spinnerFrames[this.spinnerIndex]} ${message}${dotsStr}`)
       );
     }, 80);
+  }
+
+  /**
+   * AI speaks about next action
+   */
+  aiSpeaks(message: string): void {
+    this.stopThinking();
+    console.log('');
+    console.log(chalk.blue('  💭 ') + chalk.white.bold('AI: ') + chalk.gray(message));
+    console.log('');
+  }
+
+  /**
+   * AI planning message
+   */
+  aiPlanning(steps: string[]): void {
+    this.stopThinking();
+    console.log('');
+    console.log(chalk.blue('  📋 ') + chalk.white.bold('Plan:'));
+    steps.forEach((step, idx) => {
+      console.log(chalk.gray(`     ${idx + 1}. `) + chalk.white(step));
+    });
+    console.log('');
   }
 
   /**
@@ -147,18 +222,24 @@ export class UI {
     console.log('');
     console.log(chalk.gray('  │ ') + icon + ' ' + status + durationStr);
     
-    // Show result preview if not too long
+    // Store full result for Ctrl+O
     if (result) {
-      const preview = result.length > 150 ? result.substring(0, 150) + '...' : result;
-      const resultLines = preview.split('\n').slice(0, 3); // Max 3 lines preview
+      this.resultCounter++;
+      const resultId = `Result-${this.resultCounter}`;
+      this.detailedResults.set(resultId, result);
       
-      console.log(chalk.gray('  │ ') + chalk.gray('Result:'));
-      resultLines.forEach(line => {
+      // Show only preview (first 100 chars or 2 lines)
+      const lines = result.split('\n');
+      const preview = lines.length > 2 ? lines.slice(0, 2).join('\n') : result;
+      const previewText = preview.length > 100 ? preview.substring(0, 100) + '...' : preview;
+      
+      console.log(chalk.gray('  │ ') + chalk.gray('Preview:'));
+      previewText.split('\n').forEach(line => {
         console.log(chalk.gray('  │   ') + chalk.white(line));
       });
       
-      if (result.length > 150 || result.split('\n').length > 3) {
-        console.log(chalk.gray('  │   ') + chalk.gray('[...truncated...]'));
+      if (result.length > 100 || lines.length > 2) {
+        console.log(chalk.gray('  │   ') + chalk.cyan(`[Press Ctrl+O to see full details - ${resultId}]`));
       }
     }
     
