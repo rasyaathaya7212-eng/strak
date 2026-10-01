@@ -20,9 +20,9 @@ export class Gateway {
   /**
    * Handle user input and route to agent loop
    */
-  async handleInput(input: string): Promise<string> {
+  async handleInput(input: string, ui?: any): Promise<string> {
     try {
-      const response = await this.agentLoop.run(input);
+      const response = await this.agentLoop.run(input, ui);
       return response;
     } catch (error: any) {
       throw new Error(`Gateway error: ${error.message}`);

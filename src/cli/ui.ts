@@ -9,6 +9,9 @@ import * as path from 'path';
 
 export class UI {
   private config: any;
+  private spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  private spinnerIndex = 0;
+  private spinnerInterval: NodeJS.Timeout | null = null;
 
   constructor(config: any) {
     this.config = config;
@@ -25,114 +28,240 @@ export class UI {
     // Clear screen for clean display
     console.clear();
 
-    // Cyberpunk border top with animation effect
-    const borderTop = chalk.cyan('═'.repeat(100));
-    const borderLight = chalk.magenta('▓') + chalk.cyan('▒') + chalk.blue('░');
-    
-    console.log('\n' + borderLight.repeat(33) + chalk.magenta('▓'));
-    console.log(borderTop);
-    console.log('');
-    
-    // Main title - STRAK in big ASCII art (centered)
-    const title = [
-      '              ███████╗████████╗██████╗  █████╗ ██╗  ██╗',
-      '              ██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██║ ██╔╝',
-      '              ███████╗   ██║   ██████╔╝███████║█████╔╝ ',
-      '              ╚════██║   ██║   ██╔══██╗██╔══██║██╔═██╗ ',
-      '              ███████║   ██║   ██║  ██║██║  ██║██║  ██╗',
-      '              ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝'
-    ];
+    // ASCII Logo
+    const logo = chalk.cyan(`
+    ███████╗████████╗██████╗  █████╗ ██╗  ██╗
+    ██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██║ ██╔╝
+    ███████╗   ██║   ██████╔╝███████║█████╔╝ 
+    ╚════██║   ██║   ██╔══██╗██╔══██║██╔═██╗ 
+    ███████║   ██║   ██║  ██║██║  ██║██║  ██╗
+    ╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝
+    `);
 
-    // Display title with blue color and cyberpunk effect
-    title.forEach(line => {
-      const coloredLine = line
-        .split('')
-        .map((char) => {
-          if (char === '█' || char === '╗' || char === '╔' || char === '║' || 
-              char === '═' || char === '╚' || char === '╝' || char === '╠' || char === '╣') {
-            return chalk.blue.bold(char);
-          } else if (char === ' ') {
-            return char;
-          } else {
-            return chalk.blue(char);
-          }
-        })
-        .join('');
-      console.log(coloredLine);
-    });
-
+    console.log(logo);
+    
+    // Info bar
+    const infoBar = chalk.gray('─'.repeat(60));
+    console.log(infoBar);
+    
+    const modelInfo = chalk.white('Model: ') + chalk.cyan(model);
+    const versionInfo = chalk.white('Version: ') + chalk.yellow(version);
+    const statusInfo = chalk.white('Status: ') + chalk.green('● Online');
+    
+    console.log(`  ${modelInfo} ${chalk.gray('│')} ${versionInfo} ${chalk.gray('│')} ${statusInfo}`);
+    console.log(`  ${chalk.white('Directory: ')}${chalk.gray(currentDir)}`);
+    console.log(infoBar);
     console.log('');
-    
-    // Animated cyberpunk separator line
-    const cyberLinePattern = chalk.blue('░') + chalk.cyan('▒') + chalk.magenta('▓') + chalk.blue('█');
-    const cyberLine = cyberLinePattern.repeat(25);
-    console.log(cyberLine);
-    console.log('');
-
-    // Info section with cyberpunk style
-    const versionStr = chalk.cyan('│ ') + chalk.white('VERSION:  ') + chalk.yellow(version);
-    const modelStr = chalk.cyan('│ ') + chalk.white('MODEL:    ') + chalk.magenta(model);
-    const dirStr = chalk.cyan('│ ') + chalk.white('DIRECTORY:') + chalk.green(` ${currentDir}`);
-    const statusStr = chalk.cyan('│ ') + chalk.white('STATUS:   ') + chalk.green('● ONLINE') + chalk.gray(' | AI Agent Ready');
-    
-    console.log(versionStr);
-    console.log(modelStr);
-    console.log(statusStr);
-    console.log(dirStr);
-    console.log('');
-    
-    // Bottom border with animation
-    console.log(cyberLine);
-    console.log(borderTop);
-    console.log(borderLight.repeat(33) + chalk.magenta('▓') + '\n');
-    
-    // Welcome message
-    console.log(chalk.cyan('  ▶') + chalk.white(' Welcome to STRAK - AI Agent with 2000+ Tools'));
-    console.log(chalk.cyan('  ▶') + chalk.gray(' Type your command below or "exit" to quit\n'));
   }
 
   /**
-   * Display ASCII robot logo (old version - kept for compatibility)
+   * Display thinking/processing status
    */
-  displayLogo(): void {
-    // This is now integrated into displayHeader()
+  startThinking(message: string = 'Thinking'): void {
+    this.stopThinking(); // Stop any existing spinner
+    
+    let dots = 0;
+    process.stdout.write(chalk.magenta(`\n  ${this.spinnerFrames[0]} ${message}`));
+    
+    this.spinnerInterval = setInterval(() => {
+      this.spinnerIndex = (this.spinnerIndex + 1) % this.spinnerFrames.length;
+      dots = (dots + 1) % 4;
+      const dotsStr = '.'.repeat(dots) + ' '.repeat(3 - dots);
+      
+      // Clear line and rewrite
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+      process.stdout.write(
+        chalk.magenta(`  ${this.spinnerFrames[this.spinnerIndex]} ${message}${dotsStr}`)
+      );
+    }, 80);
+  }
+
+  /**
+   * Stop thinking spinner
+   */
+  stopThinking(): void {
+    if (this.spinnerInterval) {
+      clearInterval(this.spinnerInterval);
+      this.spinnerInterval = null;
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+    }
+  }
+
+  /**
+   * Display tool execution with beautiful formatting
+   */
+  toolExecutionStart(toolName: string, args?: any): void {
+    this.stopThinking();
+    
+    const icon = this.getToolIcon(toolName);
+    const toolLabel = chalk.cyan.bold(toolName);
+    
+    console.log('');
+    console.log(chalk.gray('  ┌─────────────────────────────────────────────'));
+    console.log(chalk.gray('  │ ') + icon + chalk.white(' Executing Tool'));
+    console.log(chalk.gray('  │ ') + chalk.gray('Tool: ') + toolLabel);
+    
+    // Show args if provided and not too long
+    if (args && Object.keys(args).length > 0) {
+      const argsStr = JSON.stringify(args, null, 2);
+      if (argsStr.length < 200) {
+        const argsLines = argsStr.split('\n');
+        argsLines.forEach((line, idx) => {
+          if (idx === 0) {
+            console.log(chalk.gray('  │ ') + chalk.gray('Args: ') + chalk.yellow(line));
+          } else {
+            console.log(chalk.gray('  │       ') + chalk.yellow(line));
+          }
+        });
+      } else {
+        console.log(chalk.gray('  │ ') + chalk.gray('Args: ') + chalk.yellow('[complex arguments]'));
+      }
+    }
+    
+    console.log(chalk.gray('  │'));
+    
+    // Show spinner while executing
+    let spinIndex = 0;
+    process.stdout.write(chalk.gray('  │ ') + chalk.yellow(`${this.spinnerFrames[spinIndex]} Processing...`));
+    
+    this.spinnerInterval = setInterval(() => {
+      spinIndex = (spinIndex + 1) % this.spinnerFrames.length;
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+      process.stdout.write(chalk.gray('  │ ') + chalk.yellow(`${this.spinnerFrames[spinIndex]} Processing...`));
+    }, 80);
+  }
+
+  /**
+   * Display tool execution result
+   */
+  toolExecutionEnd(toolName: string, success: boolean, result?: string, duration?: number): void {
+    this.stopThinking();
+    
+    const icon = success ? chalk.green('✓') : chalk.red('✗');
+    const status = success ? chalk.green('Success') : chalk.red('Failed');
+    const durationStr = duration ? chalk.gray(` (${duration}ms)`) : '';
+    
+    console.log('');
+    console.log(chalk.gray('  │ ') + icon + ' ' + status + durationStr);
+    
+    // Show result preview if not too long
+    if (result) {
+      const preview = result.length > 150 ? result.substring(0, 150) + '...' : result;
+      const resultLines = preview.split('\n').slice(0, 3); // Max 3 lines preview
+      
+      console.log(chalk.gray('  │ ') + chalk.gray('Result:'));
+      resultLines.forEach(line => {
+        console.log(chalk.gray('  │   ') + chalk.white(line));
+      });
+      
+      if (result.length > 150 || result.split('\n').length > 3) {
+        console.log(chalk.gray('  │   ') + chalk.gray('[...truncated...]'));
+      }
+    }
+    
+    console.log(chalk.gray('  └─────────────────────────────────────────────'));
+    console.log('');
+  }
+
+  /**
+   * Get icon for tool type
+   */
+  private getToolIcon(toolName: string): string {
+    if (toolName.includes('web') || toolName.includes('search') || toolName.includes('fetch')) {
+      return '🌐';
+    } else if (toolName.includes('file') || toolName.includes('read') || toolName.includes('write')) {
+      return '📁';
+    } else if (toolName.includes('terminal') || toolName.includes('bash') || toolName.includes('exec')) {
+      return '💻';
+    } else if (toolName.includes('memory')) {
+      return '🧠';
+    } else if (toolName.includes('git')) {
+      return '🔀';
+    } else if (toolName.includes('image') || toolName.includes('media')) {
+      return '🎨';
+    } else if (toolName.includes('mcp')) {
+      return '🔌';
+    }
+    return '🔧';
   }
 
   /**
    * Display success message
    */
   success(message: string): void {
-    console.log(chalk.green(`✓ ${message}`));
+    console.log(chalk.green(`  ✓ ${message}`));
   }
 
   /**
    * Display error message
    */
   error(message: string): void {
-    console.log(chalk.red(`✗ ${message}`));
+    console.log(chalk.red(`\n  ✗ Error: ${message}\n`));
   }
 
   /**
    * Display info message
    */
   info(message: string): void {
-    console.log(chalk.cyan(`ℹ ${message}`));
+    console.log(chalk.cyan(`  ℹ ${message}`));
   }
 
   /**
-   * Display tool execution status
-   */
-  toolExecution(toolName: string): void {
-    console.log(chalk.magenta(`⚡ EXECUTING TOOL: `) + chalk.yellow(toolName));
-  }
-
-  /**
-   * Display assistant response
+   * Display assistant response with beautiful box
    */
   assistantMessage(content: string): void {
-    console.log(chalk.cyan('\n┌─ ASSISTANT RESPONSE'));
-    console.log(chalk.white(content));
-    console.log(chalk.cyan('└─────────────────────\n'));
+    this.stopThinking();
+    
+    console.log('');
+    console.log(chalk.blue('  ╭─────────────────────────────────────────────────────────╮'));
+    console.log(chalk.blue('  │ ') + chalk.white.bold('Assistant Response') + ' '.repeat(37) + chalk.blue('│'));
+    console.log(chalk.blue('  ├─────────────────────────────────────────────────────────┤'));
+    
+    // Wrap text to fit in box (max 55 chars per line)
+    const maxWidth = 55;
+    const lines = this.wrapText(content, maxWidth);
+    
+    lines.forEach(line => {
+      const padding = ' '.repeat(Math.max(0, maxWidth - line.length));
+      console.log(chalk.blue('  │ ') + chalk.white(line) + padding + chalk.blue(' │'));
+    });
+    
+    console.log(chalk.blue('  ╰─────────────────────────────────────────────────────────╯'));
+    console.log('');
+  }
+
+  /**
+   * Wrap text to specified width
+   */
+  private wrapText(text: string, maxWidth: number): string[] {
+    const lines: string[] = [];
+    const paragraphs = text.split('\n');
+    
+    paragraphs.forEach(paragraph => {
+      if (paragraph.trim() === '') {
+        lines.push('');
+        return;
+      }
+      
+      const words = paragraph.split(' ');
+      let currentLine = '';
+      
+      words.forEach(word => {
+        if ((currentLine + word).length <= maxWidth) {
+          currentLine += (currentLine ? ' ' : '') + word;
+        } else {
+          if (currentLine) lines.push(currentLine);
+          currentLine = word;
+        }
+      });
+      
+      if (currentLine) lines.push(currentLine);
+    });
+    
+    return lines;
   }
 
   /**
@@ -140,16 +269,24 @@ export class UI {
    */
   configWarning(): void {
     const configPath = require('../utils/config').getConfigFilePath();
-    console.log(chalk.red('\n╔════════════════════════════════════════════════════════════╗'));
-    console.log(chalk.red('║') + chalk.yellow('  ⚠️  CONFIGURATION INCOMPLETE  ⚠️                          ') + chalk.red('║'));
-    console.log(chalk.red('╠════════════════════════════════════════════════════════════╣'));
-    console.log(chalk.red('║') + chalk.white('  Please fill in the following fields in config.json:      ') + chalk.red('║'));
-    console.log(chalk.red('║') + chalk.cyan('    • apiKey   ') + chalk.gray('- Your API key                           ') + chalk.red('║'));
-    console.log(chalk.red('║') + chalk.cyan('    • baseUrl  ') + chalk.gray('- API endpoint URL                       ') + chalk.red('║'));
-    console.log(chalk.red('║') + chalk.cyan('    • model    ') + chalk.gray('- Model name                             ') + chalk.red('║'));
-    console.log(chalk.red('╠════════════════════════════════════════════════════════════╣'));
-    console.log(chalk.red('║') + chalk.white('  Config file location:                                     ') + chalk.red('║'));
-    console.log(chalk.red('║') + chalk.green(`  ${configPath}`) + ' '.repeat(58 - configPath.length) + chalk.red('║'));
-    console.log(chalk.red('╚════════════════════════════════════════════════════════════╝\n'));
+    console.log(chalk.red('\n  ╔════════════════════════════════════════════════════════════╗'));
+    console.log(chalk.red('  ║') + chalk.yellow('  ⚠️  CONFIGURATION INCOMPLETE  ⚠️                          ') + chalk.red('║'));
+    console.log(chalk.red('  ╠════════════════════════════════════════════════════════════╣'));
+    console.log(chalk.red('  ║') + chalk.white('  Please fill in the following fields in config.json:      ') + chalk.red('║'));
+    console.log(chalk.red('  ║') + chalk.cyan('    • apiKey   ') + chalk.gray('- Your API key                           ') + chalk.red('║'));
+    console.log(chalk.red('  ║') + chalk.cyan('    • baseUrl  ') + chalk.gray('- API endpoint URL                       ') + chalk.red('║'));
+    console.log(chalk.red('  ║') + chalk.cyan('    • model    ') + chalk.gray('- Model name                             ') + chalk.red('║'));
+    console.log(chalk.red('  ╠════════════════════════════════════════════════════════════╣'));
+    console.log(chalk.red('  ║') + chalk.white('  Config file location:                                     ') + chalk.red('║'));
+    console.log(chalk.red('  ║') + chalk.green(`  ${configPath}`) + ' '.repeat(58 - configPath.length) + chalk.red('║'));
+    console.log(chalk.red('  ╚════════════════════════════════════════════════════════════╝\n'));
+  }
+
+  /**
+   * Clear current line (for dynamic updates)
+   */
+  clearLine(): void {
+    process.stdout.clearLine(0);
+    process.stdout.cursorTo(0);
   }
 }

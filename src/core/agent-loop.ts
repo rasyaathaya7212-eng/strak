@@ -28,6 +28,13 @@ export class AgentLoop {
   }
 
   /**
+   * Set UI instance for better display
+   */
+  setUI(ui: any): void {
+    this.toolExecutor.setUI(ui);
+  }
+
+  /**
    * Initialize MCP servers asynchronously
    */
   private async initializeMCP(): Promise<void> {
@@ -41,7 +48,13 @@ export class AgentLoop {
   /**
    * Main agent loop
    */
-  async run(userInput: string): Promise<string> {
+  async run(userInput: string, ui?: any): Promise<string> {
+    // Set UI if provided
+    if (ui) {
+      this.setUI(ui);
+      ui.startThinking('Processing your request');
+    }
+    
     // Add user message to session
     this.sessionManager.addMessage({
       role: 'user',
@@ -53,7 +66,7 @@ export class AgentLoop {
     if (messages.length === 1) {
       this.sessionManager.addMessage({
         role: 'system',
-        content: 'You are Strak, a powerful AI assistant with access to 2000+ tools. Help users accomplish their tasks efficiently.'
+        content: 'You are Strak, a powerful AI assistant with access to 200+ tools and MCP servers. Help users accomplish their tasks efficiently.'
       });
     }
 

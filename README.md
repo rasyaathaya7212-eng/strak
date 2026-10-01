@@ -36,7 +36,7 @@
 ```bash
 # 1. Clone repository
 git clone https://github.com/rasyaathaya7212-eng/strak
-cd strak-cli
+cd strak
 
 # 2. Install dependencies
 npm install

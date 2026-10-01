@@ -70,14 +70,14 @@ export class CLI {
           if (toolSuggestion) {
             // Add suggested tool to user's input context
             const finalInput = `Gunakan tool "${toolSuggestion}" untuk: ` + await this.getFollowUpInput();
-            const response = await this.gateway.handleInput(finalInput);
+            const response = await this.gateway.handleInput(finalInput, this.ui);
             this.ui.assistantMessage(response);
           }
           continue;
         }
 
         // Process input through gateway
-        const response = await this.gateway.handleInput(input);
+        const response = await this.gateway.handleInput(input, this.ui);
         
         // Display response
         this.ui.assistantMessage(response);
