@@ -280,31 +280,15 @@ Ketik `/` untuk melihat semua tools:
 
 **STRAK** menggunakan **Chimera Architecture** yang menggabungkan:
 
-```
-┌─────────────────────────────────────────┐
-│         User Interface (CLI)            │
-│    Cyberpunk UI + Tool Suggestion       │
-├─────────────────────────────────────────┤
-│         Gateway / Router                │
-│      Request routing & session          │
-├─────────────────────────────────────────┤
-│          Agent Core                     │
-│   Agent Loop + Tool Orchestration       │
-├─────────────────────────────────────────┤
-│      LLM Provider (Custom)              │
-│   OpenAI-compatible API integration     │
-├─────────────────────────────────────────┤
-│        Tool System (200 tools)          │
-│   Registry + Executor + 14 Categories   │
-└─────────────────────────────────────────┘
-```
+![STRAK Architecture Flow](logic.png)
 
 **Key Components:**
 - **CLI Layer** - Inquirer-based interactive terminal
 - **Gateway** - Routes requests, manages sessions
 - **Agent Loop** - Iterative LLM + tool execution (max 10 iterations)
 - **LLM Router** - Custom provider support (any OpenAI-compatible API)
-- **Tool System** - 200 tools across 14 categories
+- **Tool System** - 200+ tools across 14 categories + unlimited MCP tools
+- **MCP Integration** - Compatible dengan Claude Code MCP servers
 
 ---
 
