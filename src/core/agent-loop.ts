@@ -7,18 +7,35 @@ import { SessionManager } from './session';
 import { LLMRouter } from './llm-router';
 import { ToolExecutor } from '../tools/executor';
 import { Config, Message, LLMRequest } from '../types';
+import { MCPInitializer } from '../mcp/initializer';
 
 export class AgentLoop {
   private sessionManager: SessionManager;
   private llmRouter: LLMRouter;
   private toolExecutor: ToolExecutor;
   private config: Config;
+  private mcpInitializer: MCPInitializer;
 
   constructor(config: Config, sessionManager: SessionManager) {
     this.config = config;
     this.sessionManager = sessionManager;
     this.llmRouter = new LLMRouter(config);
     this.toolExecutor = new ToolExecutor();
+    this.mcpInitializer = new MCPInitializer();
+    
+    // Initialize MCP servers
+    this.initializeMCP();
+  }
+
+  /**
+   * Initialize MCP servers asynchronously
+   */
+  private async initializeMCP(): Promise<void> {
+    try {
+      await this.mcpInitializer.initialize();
+    } catch (error) {
+      console.error('⚠️  MCP initialization failed, continuing without MCP');
+    }
   }
 
   /**

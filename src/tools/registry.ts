@@ -18,9 +18,11 @@ import { dataTools } from './categories/11-data.js';
 import { integrationTools } from './categories/12-integration.js';
 import { skillsTools } from './categories/13-skills.js';
 import { deviceTools } from './categories/14-device.js';
+import { mcpTools } from './categories/15-mcp.js';
 
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
+  private mcpTools: Map<string, Tool> = new Map(); // Separate storage for MCP tools
 
   constructor() {
     this.registerTools();
@@ -44,14 +46,41 @@ export class ToolRegistry {
       ...dataTools,             // 12 tools
       ...integrationTools,      // 15 tools
       ...skillsTools,           // 10 tools
-      ...deviceTools            // 17 tools (includes 9 extras)
+      ...deviceTools,           // 17 tools
+      ...mcpTools               // 3 management tools
     ];
 
     allTools.forEach(tool => {
       this.tools.set(tool.name, tool);
     });
 
-    console.log(`✓ Loaded ${this.tools.size} tools`);
+    console.log(`✓ Loaded ${this.tools.size} built-in tools`);
+  }
+
+  /**
+   * Register MCP tool dynamically
+   */
+  registerMCPTool(tool: Tool): void {
+    this.mcpTools.set(tool.name, tool);
+    this.tools.set(tool.name, tool); // Also add to main registry
+  }
+
+  /**
+   * Unregister MCP tool
+   */
+  unregisterMCPTool(toolName: string): void {
+    this.mcpTools.delete(toolName);
+    this.tools.delete(toolName);
+  }
+
+  /**
+   * Clear all MCP tools
+   */
+  clearMCPTools(): void {
+    for (const toolName of this.mcpTools.keys()) {
+      this.tools.delete(toolName);
+    }
+    this.mcpTools.clear();
   }
 
   /**
@@ -62,7 +91,7 @@ export class ToolRegistry {
   }
 
   /**
-   * Get all tools
+   * Get all tools (including MCP)
    */
   getAllTools(): Tool[] {
     return Array.from(this.tools.values());
@@ -80,6 +109,13 @@ export class ToolRegistry {
    */
   hasTool(name: string): boolean {
     return this.tools.has(name);
+  }
+
+  /**
+   * Get MCP tools count
+   */
+  getMCPToolCount(): number {
+    return this.mcpTools.size;
   }
   /**
    * Get tool definitions for LLM (only essential/implemented tools)
