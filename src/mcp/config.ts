@@ -38,13 +38,13 @@ export function loadMCPConfig(): MCPConfig {
 
   // Return empty config if not found
   if (!fs.existsSync(configPath)) {
-    console.log('ℹ️  No MCP configuration found');
+    console.log('[INFO] No MCP configuration found');
     return { mcpServers: {} };
   }
 
   try {
     const config = fs.readJsonSync(configPath);
-    console.log(`✅ Loaded MCP config from: ${configPath}`);
+    console.log(`[OK] Loaded MCP config from: ${configPath}`);
     return config;
   } catch (error: any) {
     console.error(`❌ Failed to load MCP config:`, error.message);
@@ -61,9 +61,9 @@ export function saveMCPConfig(config: MCPConfig): void {
   try {
     fs.ensureDirSync(path.dirname(configPath));
     fs.writeJsonSync(configPath, config, { spaces: 2 });
-    console.log(`✅ Saved MCP config to: ${configPath}`);
+    console.log(`[OK] Saved MCP config to: ${configPath}`);
   } catch (error: any) {
-    console.error(`❌ Failed to save MCP config:`, error.message);
+    console.error(`[ERROR] Failed to save MCP config:`, error.message);
   }
 }
 

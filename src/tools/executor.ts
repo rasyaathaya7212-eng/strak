@@ -33,7 +33,7 @@ export class ToolExecutor {
       if (this.ui) {
         this.ui.toolExecutionStart(toolName, args);
       } else {
-        console.log(chalk.magenta(`⚡ EXECUTING TOOL: `) + chalk.yellow(toolName));
+        console.log(chalk.magenta(`[EXEC] EXECUTING TOOL: `) + chalk.yellow(toolName));
       }
 
       // Get tool from registry

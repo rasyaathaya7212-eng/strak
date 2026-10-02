@@ -14,6 +14,8 @@ export class UI {
   private spinnerInterval: NodeJS.Timeout | null = null;
   private detailedResults: Map<string, string> = new Map(); // Store full results
   private resultCounter = 0;
+  private detailsVisible = false; // Track if details panel is open
+  private lastOutputLine = 0; // Track last line position
 
   constructor(config: any) {
     this.config = config;
@@ -34,7 +36,12 @@ export class UI {
 
       process.stdin.on('keypress', (str, key) => {
         if (key.ctrl && key.name === 'o') {
-          this.showDetailedResults();
+          // Toggle details panel
+          if (this.detailsVisible) {
+            this.hideDetailedResults();
+          } else {
+            this.showDetailedResults();
+          }
         }
         
         // Allow Ctrl+C to exit
@@ -49,22 +56,58 @@ export class UI {
    * Show all detailed results
    */
   private showDetailedResults(): void {
+    // Don't interrupt if still processing
+    if (this.spinnerInterval) {
+      return;
+    }
+
+    this.detailsVisible = true;
+    
     console.log('\n');
-    console.log(chalk.cyan('  ╔═══════════════════════════════════════════════════════════╗'));
-    console.log(chalk.cyan('  ║') + chalk.white.bold('  DETAILED RESULTS (Ctrl+O)') + ' '.repeat(32) + chalk.cyan('║'));
-    console.log(chalk.cyan('  ╚═══════════════════════════════════════════════════════════╝'));
+    console.log(chalk.cyan('═'.repeat(70)));
+    console.log(chalk.white.bold(' Tool Output Details'));
+    console.log(chalk.cyan('═'.repeat(70)));
     console.log('');
 
     if (this.detailedResults.size === 0) {
-      console.log(chalk.gray('  No detailed results available yet.'));
+      console.log(chalk.gray('  No results available yet.'));
     } else {
+      let resultNum = 1;
       for (const [id, result] of this.detailedResults) {
-        console.log(chalk.yellow(`  [${id}]`));
-        console.log(chalk.white('  ' + result.split('\n').join('\n  ')));
-        console.log(chalk.gray('  ' + '─'.repeat(60)));
-        console.log('');
+        console.log(chalk.cyan(`  ${resultNum}. `) + chalk.white.bold(id));
+        console.log(chalk.gray('  ' + '─'.repeat(68)));
+        
+        // Display result with proper formatting
+        const lines = result.split('\n');
+        lines.forEach(line => {
+          console.log('  ' + chalk.white(line));
+        });
+        
+        if (resultNum < this.detailedResults.size) {
+          console.log('');
+        }
+        resultNum++;
       }
     }
+    
+    console.log('');
+    console.log(chalk.cyan('═'.repeat(70)));
+    console.log(chalk.gray('  Press Ctrl+O again to close'));
+    console.log(chalk.cyan('═'.repeat(70)));
+    console.log('');
+  }
+
+  /**
+   * Hide detailed results panel
+   */
+  private hideDetailedResults(): void {
+    this.detailsVisible = false;
+    
+    // Clear screen and redisplay header
+    console.clear();
+    this.displayHeader();
+    
+    console.log(chalk.green('  [INFO] Details panel closed. Continuing conversation...\n'));
   }
 
   /**
@@ -109,7 +152,7 @@ export class UI {
     console.log(`  ${chalk.white('Directory: ')}${chalk.gray(currentDir)}`);
     console.log(infoBar);
     console.log('');
-    console.log(chalk.gray('  💡 Tip: Press ') + chalk.cyan.bold('Ctrl+O') + chalk.gray(' to view detailed tool results'));
+    console.log(chalk.gray('  Tip: Press ') + chalk.cyan.bold('Ctrl+O') + chalk.gray(' to view detailed tool results'));
     console.log('');
   }
 
@@ -142,8 +185,7 @@ export class UI {
   aiSpeaks(message: string): void {
     this.stopThinking();
     console.log('');
-    console.log(chalk.blue('  💭 ') + chalk.white.bold('AI: ') + chalk.gray(message));
-    console.log('');
+    console.log(chalk.gray('  │  ') + chalk.blue('→ ') + chalk.gray(message));
   }
 
   /**
@@ -152,7 +194,7 @@ export class UI {
   aiPlanning(steps: string[]): void {
     this.stopThinking();
     console.log('');
-    console.log(chalk.blue('  📋 ') + chalk.white.bold('Plan:'));
+    console.log(chalk.blue('  [Plan] ') + chalk.white.bold('Plan:'));
     steps.forEach((step, idx) => {
       console.log(chalk.gray(`     ${idx + 1}. `) + chalk.white(step));
     });
@@ -177,28 +219,15 @@ export class UI {
   toolExecutionStart(toolName: string, args?: any): void {
     this.stopThinking();
     
-    const icon = this.getToolIcon(toolName);
-    const toolLabel = chalk.cyan.bold(toolName);
-    
     console.log('');
-    console.log(chalk.gray('  ┌─────────────────────────────────────────────'));
-    console.log(chalk.gray('  │ ') + icon + chalk.white(' Executing Tool'));
-    console.log(chalk.gray('  │ ') + chalk.gray('Tool: ') + toolLabel);
+    console.log(chalk.gray('  ┌─ ') + chalk.cyan.bold(toolName));
     
-    // Show args if provided and not too long
+    // Show args if provided (compact format)
     if (args && Object.keys(args).length > 0) {
-      const argsStr = JSON.stringify(args, null, 2);
-      if (argsStr.length < 200) {
-        const argsLines = argsStr.split('\n');
-        argsLines.forEach((line, idx) => {
-          if (idx === 0) {
-            console.log(chalk.gray('  │ ') + chalk.gray('Args: ') + chalk.yellow(line));
-          } else {
-            console.log(chalk.gray('  │       ') + chalk.yellow(line));
-          }
-        });
-      } else {
-        console.log(chalk.gray('  │ ') + chalk.gray('Args: ') + chalk.yellow('[complex arguments]'));
+      for (const [key, value] of Object.entries(args)) {
+        const valueStr = typeof value === 'string' ? value : JSON.stringify(value);
+        const displayValue = valueStr.length > 60 ? valueStr.substring(0, 60) + '...' : valueStr;
+        console.log(chalk.gray('  │  ') + chalk.gray(key + ': ') + chalk.white(displayValue));
       }
     }
     
@@ -206,13 +235,13 @@ export class UI {
     
     // Show spinner while executing
     let spinIndex = 0;
-    process.stdout.write(chalk.gray('  │ ') + chalk.yellow(`${this.spinnerFrames[spinIndex]} Processing...`));
+    process.stdout.write(chalk.gray('  │  ') + chalk.yellow(`${this.spinnerFrames[spinIndex]} Running...`));
     
     this.spinnerInterval = setInterval(() => {
       spinIndex = (spinIndex + 1) % this.spinnerFrames.length;
       process.stdout.clearLine(0);
       process.stdout.cursorTo(0);
-      process.stdout.write(chalk.gray('  │ ') + chalk.yellow(`${this.spinnerFrames[spinIndex]} Processing...`));
+      process.stdout.write(chalk.gray('  │  ') + chalk.yellow(`${this.spinnerFrames[spinIndex]} Running...`));
     }, 80);
   }
 
@@ -222,35 +251,31 @@ export class UI {
   toolExecutionEnd(toolName: string, success: boolean, result?: string, duration?: number): void {
     this.stopThinking();
     
-    const icon = success ? chalk.green('✓') : chalk.red('✗');
-    const status = success ? chalk.green('Success') : chalk.red('Failed');
-    const durationStr = duration ? chalk.gray(` (${duration}ms)`) : '';
+    const statusText = success ? chalk.green('Done') : chalk.red('Failed');
+    const durationText = duration ? chalk.gray(` (${duration}ms)`) : '';
     
     console.log('');
-    console.log(chalk.gray('  │ ') + icon + ' ' + status + durationStr);
+    console.log(chalk.gray('  │  ') + statusText + durationText);
     
     // Store full result for Ctrl+O
     if (result) {
       this.resultCounter++;
-      const resultId = `Result-${this.resultCounter}`;
+      const resultId = `${toolName}-${this.resultCounter}`;
       this.detailedResults.set(resultId, result);
       
-      // Show only preview (first 100 chars or 2 lines)
-      const lines = result.split('\n');
-      const preview = lines.length > 2 ? lines.slice(0, 2).join('\n') : result;
-      const previewText = preview.length > 100 ? preview.substring(0, 100) + '...' : preview;
-      
-      console.log(chalk.gray('  │ ') + chalk.gray('Preview:'));
-      previewText.split('\n').forEach(line => {
-        console.log(chalk.gray('  │   ') + chalk.white(line));
-      });
-      
-      if (result.length > 100 || lines.length > 2) {
-        console.log(chalk.gray('  │   ') + chalk.cyan(`[Press Ctrl+O to see full details - ${resultId}]`));
+      // Show only first line as preview
+      const lines = result.split('\n').filter(l => l.trim());
+      if (lines.length > 0) {
+        const preview = lines[0].length > 70 ? lines[0].substring(0, 70) + '...' : lines[0];
+        console.log(chalk.gray('  │  ') + chalk.white(preview));
+        
+        if (lines.length > 1 || lines[0].length > 70) {
+          console.log(chalk.gray('  │  ') + chalk.dim('[Ctrl+O to see full output]'));
+        }
       }
     }
     
-    console.log(chalk.gray('  └─────────────────────────────────────────────'));
+    console.log(chalk.gray('  └─'));
     console.log('');
   }
 
@@ -259,42 +284,42 @@ export class UI {
    */
   private getToolIcon(toolName: string): string {
     if (toolName.includes('web') || toolName.includes('search') || toolName.includes('fetch')) {
-      return '🌐';
+      return '[WEB]';
     } else if (toolName.includes('file') || toolName.includes('read') || toolName.includes('write')) {
-      return '📁';
+      return '[FILE]';
     } else if (toolName.includes('terminal') || toolName.includes('bash') || toolName.includes('exec')) {
-      return '💻';
+      return '[TERM]';
     } else if (toolName.includes('memory')) {
-      return '🧠';
+      return '[MEM]';
     } else if (toolName.includes('git')) {
-      return '🔀';
+      return '[GIT]';
     } else if (toolName.includes('image') || toolName.includes('media')) {
-      return '🎨';
+      return '[MEDIA]';
     } else if (toolName.includes('mcp')) {
-      return '🔌';
+      return '[MCP]';
     }
-    return '🔧';
+    return '[TOOL]';
   }
 
   /**
    * Display success message
    */
   success(message: string): void {
-    console.log(chalk.green(`  ✓ ${message}`));
+    console.log(chalk.green(`  [OK] ${message}`));
   }
 
   /**
    * Display error message
    */
   error(message: string): void {
-    console.log(chalk.red(`\n  ✗ Error: ${message}\n`));
+    console.log(chalk.red(`\n  [ERROR] Error: ${message}\n`));
   }
 
   /**
    * Display info message
    */
   info(message: string): void {
-    console.log(chalk.cyan(`  ℹ ${message}`));
+    console.log(chalk.cyan(`  [INFO] ${message}`));
   }
 
   /**
@@ -304,20 +329,20 @@ export class UI {
     this.stopThinking();
     
     console.log('');
-    console.log(chalk.blue('  ╭─────────────────────────────────────────────────────────╮'));
-    console.log(chalk.blue('  │ ') + chalk.white.bold('Assistant Response') + ' '.repeat(37) + chalk.blue('│'));
-    console.log(chalk.blue('  ├─────────────────────────────────────────────────────────┤'));
+    console.log(chalk.gray('  ┌─ ') + chalk.blue.bold('Assistant'));
+    console.log(chalk.gray('  │'));
     
-    // Wrap text to fit in box (max 55 chars per line)
-    const maxWidth = 55;
-    const lines = this.wrapText(content, maxWidth);
-    
+    // Simple line-by-line display
+    const lines = content.split('\n');
     lines.forEach(line => {
-      const padding = ' '.repeat(Math.max(0, maxWidth - line.length));
-      console.log(chalk.blue('  │ ') + chalk.white(line) + padding + chalk.blue(' │'));
+      if (line.trim()) {
+        console.log(chalk.gray('  │  ') + chalk.white(line));
+      } else {
+        console.log(chalk.gray('  │'));
+      }
     });
     
-    console.log(chalk.blue('  ╰─────────────────────────────────────────────────────────╯'));
+    console.log(chalk.gray('  └─'));
     console.log('');
   }
 
@@ -358,7 +383,7 @@ export class UI {
   configWarning(): void {
     const configPath = require('../utils/config').getConfigFilePath();
     console.log(chalk.red('\n  ╔════════════════════════════════════════════════════════════╗'));
-    console.log(chalk.red('  ║') + chalk.yellow('  ⚠️  CONFIGURATION INCOMPLETE  ⚠️                          ') + chalk.red('║'));
+    console.log(chalk.red('  ║') + chalk.yellow('  [!] CONFIGURATION INCOMPLETE  [!]                        ') + chalk.red('║'));
     console.log(chalk.red('  ╠════════════════════════════════════════════════════════════╣'));
     console.log(chalk.red('  ║') + chalk.white('  Please fill in the following fields in config.json:      ') + chalk.red('║'));
     console.log(chalk.red('  ║') + chalk.cyan('    • apiKey   ') + chalk.gray('- Your API key                           ') + chalk.red('║'));

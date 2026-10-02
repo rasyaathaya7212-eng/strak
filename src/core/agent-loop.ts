@@ -41,7 +41,7 @@ export class AgentLoop {
     try {
       await this.mcpInitializer.initialize();
     } catch (error) {
-      console.error('⚠️  MCP initialization failed, continuing without MCP');
+      console.error('[!] MCP initialization failed, continuing without MCP');
     }
   }
 

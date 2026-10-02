@@ -20,10 +20,10 @@ const getConfigPath = (): string => {
   if (fs.existsSync(projectConfig) && process.cwd() !== path.dirname(projectConfig)) {
     try {
       fs.copyFileSync(projectConfig, cwdConfig);
-      console.log(`✓ Config disalin ke: ${cwdConfig}`);
+      console.log(`[OK] Config disalin ke: ${cwdConfig}`);
       return cwdConfig;
     } catch (error) {
-      console.log(`⚠ Gagal menyalin config, menggunakan dari project root`);
+      console.log(`[!] Gagal menyalin config, menggunakan dari project root`);
       return projectConfig;
     }
   }

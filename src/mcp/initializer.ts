@@ -27,12 +27,12 @@ export class MCPInitializer {
       const serverIds = Object.keys(config.mcpServers);
 
       if (serverIds.length === 0) {
-        console.log('ℹ️  No MCP servers configured');
+        console.log('[INFO] No MCP servers configured');
         this.initialized = true;
         return;
       }
 
-      console.log(`🔌 Initializing ${serverIds.length} MCP server(s)...`);
+      console.log(`[MCP] Initializing ${serverIds.length} MCP server(s)...`);
 
       // Connect to all servers
       const connectionPromises = serverIds.map(async (serverId) => {
@@ -41,7 +41,7 @@ export class MCPInitializer {
           await this.mcpManager.connectServer(serverId, serverConfig);
           return true;
         } catch (error: any) {
-          console.error(`⚠️  Failed to connect ${serverId}: ${error.message}`);
+          console.error(`[!] Failed to connect ${serverId}: ${error.message}`);
           return false;
         }
       });
@@ -56,7 +56,7 @@ export class MCPInitializer {
       const connectedCount = status.filter(s => s.connected).length;
       const totalTools = status.reduce((sum, s) => sum + s.toolCount, 0);
 
-      console.log(`✅ MCP: ${connectedCount}/${serverIds.length} servers connected, ${totalTools} tools available`);
+      console.log(`[OK] MCP: ${connectedCount}/${serverIds.length} servers connected, ${totalTools} tools available`);
 
       this.initialized = true;
     } catch (error: any) {
@@ -82,7 +82,7 @@ export class MCPInitializer {
             // Check auto-approval
             const autoApproved = this.mcpManager.isAutoApproved(serverId, mcpTool.name);
             if (!autoApproved) {
-              console.log(`⚠️  Tool ${mcpTool.name} requires manual approval (not in autoApprove list)`);
+              console.log(`[!] Tool ${mcpTool.name} requires manual approval (not in autoApprove list)`);
             }
 
             // Call MCP tool

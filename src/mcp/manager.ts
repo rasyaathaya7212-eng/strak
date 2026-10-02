@@ -17,12 +17,12 @@ export class MCPManager {
    */
   async connectServer(serverId: string, config: MCPServerConfig): Promise<void> {
     if (config.disabled) {
-      console.log(`⚠️  MCP server "${serverId}" is disabled`);
+      console.log(`[!] MCP server "${serverId}" is disabled`);
       return;
     }
 
     try {
-      console.log(`🔌 Connecting to MCP server: ${serverId}...`);
+      console.log(`[MCP] Connecting to MCP server: ${serverId}...`);
 
       // Spawn process
       const childProcess = spawn(config.command, config.args || [], {
@@ -61,16 +61,16 @@ export class MCPManager {
       });
 
       childProcess.on('exit', (code: number | null) => {
-        console.log(`⚠️  MCP ${serverId} exited with code ${code}`);
+        console.log(`[!] MCP ${serverId} exited with code ${code}`);
         connection.connected = false;
       });
 
       // Initialize connection
       await this.initialize(serverId);
 
-      console.log(`✅ Connected to MCP server: ${serverId}`);
+      console.log(`[OK] Connected to MCP server: ${serverId}`);
     } catch (error: any) {
-      console.error(`❌ Failed to connect to ${serverId}:`, error.message);
+      console.error(`[ERROR] Failed to connect to ${serverId}:`, error.message);
       throw error;
     }
   }
@@ -271,7 +271,7 @@ export class MCPManager {
     }
 
     this.connections.delete(serverId);
-    console.log(`🔌 Disconnected from MCP server: ${serverId}`);
+    console.log(`[MCP] Disconnected from MCP server: ${serverId}`);
   }
 
   /**

@@ -54,7 +54,7 @@ export class ToolRegistry {
       this.tools.set(tool.name, tool);
     });
 
-    console.log(`✓ Loaded ${this.tools.size} built-in tools`);
+    console.log(`[OK] Loaded ${this.tools.size} built-in tools`);
   }
 
   /**

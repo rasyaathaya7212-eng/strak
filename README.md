@@ -1,4 +1,4 @@
-# 🤖 STRAK AGENT - AI Agent with 200+ Tools
+# STRAK AGENT - AI Agent with 200+ Tools
 
 <div align="center">
 
@@ -16,20 +16,20 @@
 
 ---
 
-## 🌟 Features
+## Features
 
-- 🎨 **Cyberpunk UI** - Beautiful terminal interface dengan animasi
-- 🛠️ **200+ Tools** - File operations, web search, git, media, automation, dll
-- 🤖 **AI-Powered** - Agent loop yang cerdas dengan tool calling
-- 🔍 **Tool Suggestion** - Ketik `/` untuk autocomplete tool
-- ⚡ **Auto Config** - Config otomatis tersalin ke folder kerja
-- 💾 **Memory System** - Simpan dan recall informasi penting
-- 🌐 **Web Search** - Integrated LangSearch API (95% accuracy, 100ms response)
-- 📁 **File Management** - Read, write, edit files dengan mudah
+- **Cyberpunk UI** - Beautiful terminal interface dengan animasi
+- **200+ Tools** - File operations, web search, git, media, automation, dll
+- **AI-Powered** - Agent loop yang cerdas dengan tool calling
+- **Tool Suggestion** - Ketik `/` untuk autocomplete tool
+- **Auto Config** - Config otomatis tersalin ke folder kerja
+- **Memory System** - Simpan dan recall informasi penting
+- **Web Search** - Integrated LangSearch API (95% accuracy, 100ms response)
+- **File Management** - Read, write, edit files dengan mudah
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -68,7 +68,7 @@ strak
 
 ---
 
-## 💡 Usage
+## Usage
 
 ### Basic Commands
 
@@ -114,9 +114,9 @@ Ketik `/` untuk melihat semua tools:
 
 ---
 
-## 🛠️ Tools (200+)
+## Tools (200+)
 
-### Implemented Tools ✅
+### Implemented Tools
 
 | Tool | Description | Category |
 |------|-------------|----------|
@@ -135,7 +135,7 @@ Ketik `/` untuk melihat semua tools:
 ### All Categories (14)
 
 <details>
-<summary><b>📁 Filesystem (25 tools)</b></summary>
+<summary><b>Filesystem (25 tools)</b></summary>
 
 - File operations: read, write, edit, delete
 - Directory management: ls, mkdir, rmdir
@@ -145,7 +145,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>💻 Terminal & Execution (18 tools)</b></summary>
+<summary><b>Terminal & Execution (18 tools)</b></summary>
 
 - Command execution: bash, powershell, ssh
 - Process management: monitor, kill, list
@@ -155,7 +155,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>🌐 Web & Search (22 tools)</b></summary>
+<summary><b>Web & Search (22 tools)</b></summary>
 
 - Search engines: web_search, news search
 - Browser automation: navigate, click, type
@@ -165,7 +165,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>📝 Text Processing (15 tools)</b></summary>
+<summary><b>Text Processing (15 tools)</b></summary>
 
 - Text operations: grep, sed, awk
 - Line manipulation: sort, unique, count
@@ -174,7 +174,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>🤖 Agent & Delegation (12 tools)</b></summary>
+<summary><b>Agent & Delegation (12 tools)</b></summary>
 
 - Sub-agents: spawn, delegate, team
 - Session management: list, get, status
@@ -183,7 +183,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>🧠 Memory & Context (10 tools)</b></summary>
+<summary><b>Memory & Context (10 tools)</b></summary>
 
 - Memory: save, recall, search
 - Context: inject files/URLs
@@ -192,7 +192,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>🔀 Git & Version Control (12 tools)</b></summary>
+<summary><b>Git & Version Control (12 tools)</b></summary>
 
 - Basic: status, commit, log, diff
 - Branching: branch, checkout, merge
@@ -201,7 +201,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>🎨 Media & Image (12 tools)</b></summary>
+<summary><b>Media & Image (12 tools)</b></summary>
 
 - Image: generate, analyze, resize, crop
 - Audio: TTS, STT
@@ -210,7 +210,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>⏰ Automation (10 tools)</b></summary>
+<summary><b>Automation (10 tools)</b></summary>
 
 - Scheduling: cronjob, schedule
 - TODO management
@@ -219,7 +219,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>💬 Communication (10 tools)</b></summary>
+<summary><b>Communication (10 tools)</b></summary>
 
 - Email: send, read (SMTP/IMAP)
 - Messaging: Slack, Discord, Telegram
@@ -228,7 +228,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>🧮 Data & Calculation (12 tools)</b></summary>
+<summary><b>Data & Calculation (12 tools)</b></summary>
 
 - Math: calculator, date/time
 - Parsing: JSON, CSV, YAML
@@ -237,7 +237,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>🔌 Integration (15 tools)</b></summary>
+<summary><b>Integration (15 tools)</b></summary>
 
 - MCP: tool calling, resources
 - Home Assistant integration
@@ -247,7 +247,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>🎯 Skills & Plugins (10 tools)</b></summary>
+<summary><b>Skills & Plugins (10 tools)</b></summary>
 
 - Skills management
 - Plugin system
@@ -256,7 +256,7 @@ Ketik `/` untuk melihat semua tools:
 </details>
 
 <details>
-<summary><b>🖥️ Device & UI (17 tools)</b></summary>
+<summary><b>Device & UI (17 tools)</b></summary>
 
 - Device management
 - Screen capture, UI theme
@@ -267,7 +267,7 @@ Ketik `/` untuk melihat semua tools:
 
 ---
 
-## 📖 Documentation
+## Documentation
 
 - [Installation Guide](GITHUB_SETUP.md) - Detailed setup instructions
 - [Architecture](ARCHITECTURE.md) - System design & structure
@@ -276,7 +276,7 @@ Ketik `/` untuk melihat semua tools:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 **STRAK** menggunakan **Chimera Architecture** yang menggabungkan:
 
@@ -292,7 +292,7 @@ Ketik `/` untuk melihat semua tools:
 
 ---
 
-## 🎯 Use Cases
+## Use Cases
 
 ### 1. **Research Assistant**
 ```
@@ -320,7 +320,7 @@ Ketik `/` untuk melihat semua tools:
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! 
 
@@ -334,36 +334,36 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ---
 
-## 🐛 Known Issues
+## Known Issues
 
-- [ ] Banyak tools masih stub (dalam development)
-- [ ] Token context limit belum optimal
-- [ ] Rate limiting belum diimplementasi
-- [ ] Error recovery perlu improvement
-
----
-
-## 📅 Roadmap
-
-- [x] ✅ Basic CLI interface
-- [x] ✅ 200 tool structure
-- [x] ✅ Tool suggestion with `/`
-- [x] ✅ Auto-config copy
-- [ ] 🚧 Implement remaining tools
-- [ ] 🚧 Add streaming response
-- [ ] 🚧 Multi-agent orchestration
-- [ ] 🚧 Plugin system
-- [ ] 🚧 Web UI dashboard
+- Banyak tools masih stub (dalam development)
+- Token context limit belum optimal
+- Rate limiting belum diimplementasi
+- Error recovery perlu improvement
 
 ---
 
-## 📜 License
+## Roadmap
+
+- [x] Basic CLI interface
+- [x] 200 tool structure
+- [x] Tool suggestion with `/`
+- [x] Auto-config copy
+- [ ] Implement remaining tools
+- [ ] Add streaming response
+- [ ] Multi-agent orchestration
+- [ ] Plugin system
+- [ ] Web UI dashboard
+
+---
+
+## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Credits
+## Credits
 
 **STRAK AGENT** is inspired by and combines best practices from:
 
@@ -380,7 +380,7 @@ Built with:
 
 ---
 
-## 📞 Contact
+## Contact
 
 - GitHub Issues: [Create an issue](https://github.com/USERNAME/strak-agent/issues)
 - Email: ambatukam.blewww@gmail.com
@@ -388,8 +388,8 @@ Built with:
 
 <div align="center">
 
-**Made with ❤️ by [AI AND ME]**
+**Made by AI AND ME**
 
-⭐ Star this repo if you find it useful!Thanks
+Star this repo if you find it useful! Thanks
 
 </div>

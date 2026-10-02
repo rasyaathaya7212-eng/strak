@@ -58,8 +58,8 @@ export class CLI {
         if (input.toLowerCase() === 'exit' || input.toLowerCase() === 'quit') {
           console.log(chalk.cyan('\n┌─────────────────────────────────────────┐'));
           console.log(chalk.cyan('│') + chalk.yellow('  Shutting down STRAK...              ') + chalk.cyan('│'));
-          console.log(chalk.cyan('│') + chalk.green('  ✓ Session terminated                ') + chalk.cyan('│'));
-          console.log(chalk.cyan('│') + chalk.white('  Thank you for using STRAK! 🚀       ') + chalk.cyan('│'));
+          console.log(chalk.cyan('│') + chalk.green('  [OK] Session terminated             ') + chalk.cyan('│'));
+          console.log(chalk.cyan('│') + chalk.white('  Thank you for using STRAK!          ') + chalk.cyan('│'));
           console.log(chalk.cyan('└─────────────────────────────────────────┘\n'));
           process.exit(0);
         }
@@ -99,7 +99,7 @@ export class CLI {
       : tools;
 
     if (filteredTools.length === 0) {
-      console.log(chalk.yellow('  ⚠ Tidak ada tool yang cocok'));
+      console.log(chalk.yellow('  [!] Tidak ada tool yang cocok'));
       return null;
     }
 
@@ -117,7 +117,7 @@ export class CLI {
       }
     ]);
 
-    console.log(chalk.magenta(`  ✓ Tool suggestion: ${selectedTool}`));
+    console.log(chalk.magenta(`  [OK] Tool suggestion: ${selectedTool}`));
     return selectedTool;
   }
 

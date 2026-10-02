@@ -63,7 +63,7 @@ export const webTools: Tool[] = [
         }
 
         // Format results
-        let output = `🔍 Hasil pencarian "${args.query}" (${results.length} hasil):\n\n`;
+        let output = `[SEARCH] Hasil pencarian "${args.query}" (${results.length} hasil):\n\n`;
         
         results.forEach((page: any, index: number) => {
           output += `${index + 1}. **${page.name || 'No title'}**\n`;
@@ -79,7 +79,7 @@ export const webTools: Tool[] = [
           output += `   🔗 ${page.url}\n`;
           
           if (page.datePublished) {
-            output += `   📅 ${page.datePublished}\n`;
+            output += `   [DATE] ${page.datePublished}\n`;
           }
           
           output += `\n`;
