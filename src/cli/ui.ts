@@ -103,11 +103,8 @@ export class UI {
   private hideDetailedResults(): void {
     this.detailsVisible = false;
     
-    // Clear screen and redisplay header
-    console.clear();
-    this.displayHeader();
-    
-    console.log(chalk.green('  [INFO] Details panel closed. Continuing conversation...\n'));
+    // Just print closing message, don't clear screen
+    console.log(chalk.green('  [INFO] Details panel closed.\n'));
   }
 
   /**
