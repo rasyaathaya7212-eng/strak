@@ -1,6 +1,6 @@
 # 🔌 MCP (Model Context Protocol) Guide
 
-STRAK CLI mendukung MCP servers yang kompatibel dengan Claude Code!
+STRAK AGENT mendukung MCP servers yang kompatibel dengan Claude Code!
 
 ---
 
@@ -267,7 +267,7 @@ MCP tools dapat di-approve otomatis untuk menghindari prompt berulang.
 
 ## 📊 Config File Locations
 
-STRAK CLI checks config in this order:
+STRAK AGENT checks config in this order:
 
 1. `./.strak/mcp.json` (current directory)
 2. `./mcp.json` (current directory)

@@ -1,6 +1,6 @@
-# 📋 STRAK CLI - Complete Project Summary
+# 📋 STRAK AGENT - Complete Project Summary
 
-**Project:** STRAK CLI - AI Agent with 200+ Tools  
+**Project:** STRAK AGENT - AI Agent with 200+ Tools  
 **Version:** 1.0.0  
 **Created:** September 30, 2026  
 **Architecture:** Chimera (Claude Code + OpenClaw + Hermes)
@@ -9,7 +9,7 @@
 
 ## 🎯 Project Overview
 
-STRAK CLI adalah AI Agent berbasis terminal dengan 200+ automation tools, cyberpunk UI, dan web search integration. Menggunakan custom LLM provider (OpenAI-compatible) dan tool calling system yang powerful.
+STRAK AGENT adalah AI Agent berbasis terminal dengan 200+ automation tools, cyberpunk UI, dan web search integration. Menggunakan custom LLM provider (OpenAI-compatible) dan tool calling system yang powerful.
 
 ### Key Features
 - 🤖 AI Agent with autonomous tool execution
@@ -28,7 +28,7 @@ STRAK CLI adalah AI Agent berbasis terminal dengan 200+ automation tools, cyberp
 ## 📂 Project Structure
 
 ```
-strak-cli/
+strak-agent/
 ├── src/
 │   ├── cli/
 │   │   ├── index.ts           # CLI entry point & interaction loop
@@ -426,16 +426,16 @@ git init
 git add .
 
 # 3. Commit
-git commit -m "Initial commit: STRAK CLI with 200+ tools"
+git commit -m "Initial commit: STRAK AGENT with 200+ tools"
 
 # 4. Create repository on GitHub (via web)
 # https://github.com/new
-# Name: strak-cli
+# Name: strak-agent
 # Public/Private: Choose
 # Don't initialize with README (we have one)
 
 # 5. Add remote
-git remote add origin https://github.com/USERNAME/strak-cli.git
+git remote add origin https://github.com/USERNAME/strak-agent.git
 
 # 6. Set main branch
 git branch -M main
@@ -463,12 +463,12 @@ MEMORY.md
 
 ## 👥 User Installation (After Upload)
 
-Users install STRAK CLI with:
+Users install STRAK AGENT with:
 
 ```bash
 # 1. Clone
-git clone https://github.com/USERNAME/strak-cli.git
-cd strak-cli
+git clone https://github.com/USERNAME/strak-agent.git
+cd strak-agent
 
 # 2. Install
 npm install
@@ -736,4 +736,4 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 
 **Last Updated:** September 30, 2026  
 **Maintained By:** [Your Name]  
-**Project Repository:** https://github.com/USERNAME/strak-cli
+**Project Repository:** https://github.com/USERNAME/strak-agent

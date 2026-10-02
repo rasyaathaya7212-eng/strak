@@ -66,7 +66,7 @@ export class AgentLoop {
     if (messages.length === 1) {
       this.sessionManager.addMessage({
         role: 'system',
-        content: 'You are Strak, a powerful AI assistant with access to 200+ tools and MCP servers. Help users accomplish their tasks efficiently.'
+        content: 'You are STRAK AGENT, a powerful AI assistant with access to 200+ tools and MCP servers. Help users accomplish their tasks efficiently.'
       });
     }
 

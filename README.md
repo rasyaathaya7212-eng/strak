@@ -1,4 +1,4 @@
-# 🤖 STRAK CLI - AI Agent with 200+ Tools
+# 🤖 STRAK AGENT - AI Agent with 200+ Tools
 
 <div align="center">
 
@@ -365,7 +365,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Credits
 
-**STRAK CLI** is inspired by and combines best practices from:
+**STRAK AGENT** is inspired by and combines best practices from:
 
 - [Claude Code](https://www.anthropic.com) - Tool calling patterns
 - [OpenClaw](https://github.com/openclaw) - Agent orchestration
@@ -382,9 +382,9 @@ Built with:
 
 ## 📞 Contact
 
-- GitHub Issues: [Create an issue](https://github.com/USERNAME/strak-cli/issues)
+- GitHub Issues: [Create an issue](https://github.com/USERNAME/strak-agent/issues)
 - Email: ambatukam.blewww@gmail.com
-- Tiktok:STRAK CLI
+- Tiktok: STRAK AGENT
 
 <div align="center">
 

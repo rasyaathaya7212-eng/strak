@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Strak CLI - AI Agent with Chimera Architecture
+ * STRAK AGENT - AI Agent with Chimera Architecture
  * Entry Point
  */
 

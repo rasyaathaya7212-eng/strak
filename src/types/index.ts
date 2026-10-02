@@ -1,5 +1,5 @@
 /**
- * Core types for Strak CLI
+ * Core types for STRAK AGENT
  */
 
 import { z } from 'zod';
