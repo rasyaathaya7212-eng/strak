@@ -205,6 +205,50 @@ export class UI {
   }
 
   /**
+   * AI reasoning/thinking process (longer explanation)
+   */
+  aiReasoning(reasoning: string): void {
+    this.stopThinking();
+    console.log('');
+    console.log(chalk.cyan('╔' + '═'.repeat(68) + '╗'));
+    console.log(chalk.cyan('║') + chalk.yellow.bold(' AI Reasoning') + ' '.repeat(55) + chalk.cyan('║'));
+    console.log(chalk.cyan('╠' + '═'.repeat(68) + '╣'));
+    
+    // Process reasoning line by line with wrapping
+    const lines = reasoning.split('\n');
+    lines.forEach(line => {
+      if (line.trim() === '') {
+        console.log(chalk.cyan('║') + ' '.repeat(68) + chalk.cyan('║'));
+      } else {
+        // Wrap long lines
+        if (line.length > 66) {
+          const words = line.split(' ');
+          let currentLine = '';
+          
+          words.forEach(word => {
+            if ((currentLine + ' ' + word).trim().length <= 66) {
+              currentLine += (currentLine ? ' ' : '') + word;
+            } else {
+              if (currentLine) {
+                console.log(chalk.cyan('║') + chalk.white(' ' + currentLine) + ' '.repeat(67 - currentLine.length) + chalk.cyan('║'));
+              }
+              currentLine = word;
+            }
+          });
+          
+          if (currentLine) {
+            console.log(chalk.cyan('║') + chalk.white(' ' + currentLine) + ' '.repeat(67 - currentLine.length) + chalk.cyan('║'));
+          }
+        } else {
+          console.log(chalk.cyan('║') + chalk.white(' ' + line) + ' '.repeat(67 - line.length) + chalk.cyan('║'));
+        }
+      }
+    });
+    
+    console.log(chalk.cyan('╚' + '═'.repeat(68) + '╝'));
+  }
+
+  /**
    * AI planning message
    */
   aiPlanning(steps: string[]): void {

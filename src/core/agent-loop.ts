@@ -140,7 +140,19 @@ IMPORTANT RULES:
 5. If a tool fails, try ONE alternative approach, then move on
 6. Prioritize using the minimum number of tools to answer the question
 
-Help users accomplish their tasks efficiently without wasting time or resources.`
+COMMUNICATION STYLE:
+When you plan to use tools, ALWAYS explain your reasoning first:
+- WHY you need these specific tools
+- WHAT information you're looking for
+- HOW this will help answer the user's question
+
+Example GOOD response:
+"To find the current XAU/USD price, I need to search multiple reliable sources because gold prices change frequently. I'll search financial websites and then fetch detailed data from the most authoritative source."
+
+Example BAD response:
+"I'll use web_search and web_fetch tools."
+
+Help users accomplish their tasks efficiently while explaining your thought process.`
       });
     }
 
@@ -254,13 +266,18 @@ Help users accomplish their tasks efficiently without wasting time or resources.
       if (ui && response.toolCalls.length > 0) {
         ui.stopThinking();
         
+        // Display AI's reasoning if provided in response.content
+        if (response.content && response.content.trim()) {
+          ui.aiReasoning(response.content);
+        }
+        
         // Show what tools will be executed
         if (response.toolCalls.length === 1) {
           const tool = response.toolCalls[0];
-          ui.aiSpeaks(`I want to use the ${tool.name} tool`);
+          ui.aiSpeaks(`Planning to use: ${tool.name}`);
         } else {
           const toolNames = response.toolCalls.map(t => t.name).join(', ');
-          ui.aiSpeaks(`I want to use ${response.toolCalls.length} tools: ${toolNames}`);
+          ui.aiSpeaks(`Planning to use ${response.toolCalls.length} tools: ${toolNames}`);
         }
 
         // Ask for permission (skip if auto-approved)

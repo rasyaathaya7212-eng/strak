@@ -118,16 +118,28 @@ export class ToolRegistry {
     return this.mcpTools.size;
   }
   /**
-   * Get tool definitions for LLM (only essential/implemented tools)
+   * Get tool definitions for LLM (essential built-in tools + all MCP tools)
    */
   getEssentialToolDefinitions(): any[] {
-    // Return only essential implemented tools
+    // Essential built-in tools
+    const essentialBuiltIn = ['read_file', 'write_file', 'read', 'write', 'ls', 
+                               'terminal', 'bash', 'web_search', 'web_fetch', 
+                               'memory_save', 'memory_recall'];
+    
+    // Get essential built-in tools
     const essentialTools = this.getAllTools().filter(tool => 
-      ['read_file', 'write_file', 'read', 'write', 'ls', 'terminal', 'bash', 
-       'web_search', 'web_fetch', 'memory_save', 'memory_recall'].includes(tool.name)
+      essentialBuiltIn.includes(tool.name)
     );
 
-    return essentialTools.map(tool => ({
+    // Add ALL MCP tools (they are already registered and working)
+    const mcpToolsList = Array.from(this.mcpTools.values());
+    
+    // Combine both
+    const allToolsForLLM = [...essentialTools, ...mcpToolsList];
+
+    console.log(`[INFO] Sending ${allToolsForLLM.length} tools to AI (${essentialTools.length} built-in + ${mcpToolsList.length} MCP)`);
+
+    return allToolsForLLM.map(tool => ({
       type: 'function',
       function: {
         name: tool.name,
