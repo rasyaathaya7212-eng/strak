@@ -63,37 +63,48 @@ export class UI {
    * Show all detailed results (public method for CLI command)
    */
   showDetails(): void {
-    console.log('\n');
-    console.log(chalk.cyan('═'.repeat(70)));
-    console.log(chalk.white.bold(' Tool Output Details'));
-    console.log(chalk.cyan('═'.repeat(70)));
-    console.log('');
+    // Clear screen first to show details in same place
+    console.clear();
+    
+    // Redisplay header
+    this.displayHeader();
+    
+    console.log(chalk.cyan('╔' + '═'.repeat(68) + '╗'));
+    console.log(chalk.cyan('║') + chalk.white.bold(' Tool Output Details') + ' '.repeat(48) + chalk.cyan('║'));
+    console.log(chalk.cyan('╠' + '═'.repeat(68) + '╣'));
 
     if (this.detailedResults.size === 0) {
-      console.log(chalk.gray('  No results available yet.'));
+      console.log(chalk.cyan('║') + chalk.gray(' No results available yet.') + ' '.repeat(42) + chalk.cyan('║'));
     } else {
       let resultNum = 1;
       for (const [id, result] of this.detailedResults) {
-        console.log(chalk.cyan(`  ${resultNum}. `) + chalk.white.bold(id));
-        console.log(chalk.gray('  ' + '─'.repeat(68)));
+        console.log(chalk.cyan('║') + chalk.white(` ${resultNum}. ${chalk.cyan.bold(id)}`) + ' '.repeat(Math.max(0, 67 - id.length - resultNum.toString().length - 4)) + chalk.cyan('║'));
+        console.log(chalk.cyan('╠' + '─'.repeat(68) + '╣'));
         
         // Display result with proper formatting
         const lines = result.split('\n');
         lines.forEach(line => {
-          console.log('  ' + chalk.white(line));
+          // Wrap long lines
+          if (line.length > 66) {
+            const chunks = line.match(/.{1,66}/g) || [];
+            chunks.forEach(chunk => {
+              console.log(chalk.cyan('║') + chalk.white(' ' + chunk) + ' '.repeat(67 - chunk.length) + chalk.cyan('║'));
+            });
+          } else {
+            console.log(chalk.cyan('║') + chalk.white(' ' + line) + ' '.repeat(67 - line.length) + chalk.cyan('║'));
+          }
         });
         
         if (resultNum < this.detailedResults.size) {
-          console.log('');
+          console.log(chalk.cyan('╠' + '─'.repeat(68) + '╣'));
         }
         resultNum++;
       }
     }
     
-    console.log('');
-    console.log(chalk.cyan('═'.repeat(70)));
-    console.log(chalk.gray('  Type "details" to see this again'));
-    console.log(chalk.cyan('═'.repeat(70)));
+    console.log(chalk.cyan('╠' + '═'.repeat(68) + '╣'));
+    console.log(chalk.cyan('║') + chalk.gray(' Type "details" to see this again') + ' '.repeat(35) + chalk.cyan('║'));
+    console.log(chalk.cyan('╚' + '═'.repeat(68) + '╝'));
     console.log('');
   }
 
@@ -334,20 +345,44 @@ export class UI {
     this.stopThinking();
     
     console.log('');
-    console.log(chalk.gray('  ┌─ ') + chalk.blue.bold('Assistant'));
-    console.log(chalk.gray('  │'));
+    console.log(chalk.blue('╔' + '═'.repeat(68) + '╗'));
+    console.log(chalk.blue('║') + chalk.white.bold(' Assistant Response') + ' '.repeat(49) + chalk.blue('║'));
+    console.log(chalk.blue('╠' + '═'.repeat(68) + '╣'));
     
-    // Simple line-by-line display
+    // Process content line by line
     const lines = content.split('\n');
     lines.forEach(line => {
-      if (line.trim()) {
-        console.log(chalk.gray('  │  ') + chalk.white(line));
+      if (line.trim() === '') {
+        console.log(chalk.blue('║') + ' '.repeat(68) + chalk.blue('║'));
       } else {
-        console.log(chalk.gray('  │'));
+        // Wrap long lines to fit in box (max 66 chars)
+        if (line.length > 66) {
+          const words = line.split(' ');
+          let currentLine = '';
+          
+          words.forEach(word => {
+            if ((currentLine + ' ' + word).trim().length <= 66) {
+              currentLine += (currentLine ? ' ' : '') + word;
+            } else {
+              // Print current line
+              if (currentLine) {
+                console.log(chalk.blue('║') + chalk.white(' ' + currentLine) + ' '.repeat(67 - currentLine.length) + chalk.blue('║'));
+              }
+              currentLine = word;
+            }
+          });
+          
+          // Print remaining
+          if (currentLine) {
+            console.log(chalk.blue('║') + chalk.white(' ' + currentLine) + ' '.repeat(67 - currentLine.length) + chalk.blue('║'));
+          }
+        } else {
+          console.log(chalk.blue('║') + chalk.white(' ' + line) + ' '.repeat(67 - line.length) + chalk.blue('║'));
+        }
       }
     });
     
-    console.log(chalk.gray('  └─'));
+    console.log(chalk.blue('╚' + '═'.repeat(68) + '╝'));
     console.log('');
   }
 

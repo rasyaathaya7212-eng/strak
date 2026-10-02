@@ -52,13 +52,34 @@ export class AgentLoop {
     const inquirer = require('inquirer');
     const chalk = require('chalk');
     
+    // Show detailed tool info
+    console.log('');
+    console.log(chalk.cyan('─'.repeat(70)));
+    console.log(chalk.yellow.bold('STRAK AGENT wants to execute tools:'));
+    console.log(chalk.cyan('─'.repeat(70)));
+    
+    toolCalls.forEach((tool, idx) => {
+      console.log(chalk.white(`  ${idx + 1}. ${chalk.cyan.bold(tool.name)}`));
+      
+      // Show arguments compactly
+      const args = Object.entries(tool.args);
+      if (args.length > 0) {
+        args.forEach(([key, value]) => {
+          const valueStr = typeof value === 'string' ? value : JSON.stringify(value);
+          const display = valueStr.length > 50 ? valueStr.substring(0, 50) + '...' : valueStr;
+          console.log(chalk.gray(`     ${key}: `) + chalk.white(display));
+        });
+      }
+    });
+    
+    console.log(chalk.cyan('─'.repeat(70)));
     console.log('');
     console.log(chalk.yellow('Do you want to proceed?'));
     
     const choices = [
-      { name: chalk.green('1. Yes, allow tools to execute'), value: 'yes' },
-      { name: chalk.green('2. Yes, and always allow from this session'), value: 'always' },
-      { name: chalk.red('3. No, cancel immediately'), value: 'no' }
+      { name: chalk.green('1. Yes, allow STRAK to execute these tools'), value: 'yes' },
+      { name: chalk.green('2. Yes, and always allow tools from this session'), value: 'always' },
+      { name: chalk.red('3. No, cease immediately'), value: 'no' }
     ];
     
     const { approval } = await inquirer.prompt([
@@ -71,19 +92,20 @@ export class AgentLoop {
       }
     ]);
     
+    console.log('');
+    
     if (approval === 'always') {
-      // Store in config or session that user wants auto-approve
       this.config.autoApproveTools = true;
-      console.log(chalk.green('\n  [OK] Auto-approval enabled for this session\n'));
+      console.log(chalk.green('  [AUTO-APPROVE ENABLED] All tools will be executed without asking\n'));
       return true;
     }
     
     if (approval === 'no') {
-      console.log(chalk.red('\n  [CANCELLED] Tool execution cancelled\n'));
+      console.log(chalk.red('  [CANCELLED] Tool execution cancelled by user\n'));
       return false;
     }
     
-    console.log(chalk.green('\n  [OK] Proceeding with tool execution\n'));
+    console.log(chalk.green('  [APPROVED] Executing tools...\n'));
     return true;
   }
 
@@ -108,7 +130,17 @@ export class AgentLoop {
     if (messages.length === 1) {
       this.sessionManager.addMessage({
         role: 'system',
-        content: 'You are STRAK AGENT, a powerful AI assistant with access to 200+ tools and MCP servers. Help users accomplish their tasks efficiently.'
+        content: `You are STRAK AGENT, a powerful AI assistant with access to 200+ tools and MCP servers.
+
+IMPORTANT RULES:
+1. Be EFFICIENT - only use tools when absolutely necessary
+2. If you get good results from initial tools, STOP and provide the answer
+3. Don't keep searching or fetching if you already have sufficient information
+4. Quality over quantity - 1-2 good sources are better than 10 mediocre ones
+5. If a tool fails, try ONE alternative approach, then move on
+6. Prioritize using the minimum number of tools to answer the question
+
+Help users accomplish their tasks efficiently without wasting time or resources.`
       });
     }
 
@@ -144,6 +176,15 @@ export class AgentLoop {
           {
             role: 'system',
             content: 'You have been working on this task for a while. Please finish it now with a final response. Do not use more tools unless absolutely necessary.'
+          },
+          ...request.messages
+        ];
+      } else if (iterations > 2) {
+        // After 2 iterations, encourage AI to stop if it has enough info
+        request.messages = [
+          {
+            role: 'system',
+            content: 'If you already have sufficient information to answer the user\'s question, provide your response now. Only use additional tools if the current information is incomplete or insufficient.'
           },
           ...request.messages
         ];
