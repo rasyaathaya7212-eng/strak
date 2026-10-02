@@ -8,7 +8,8 @@ import { z } from 'zod';
 export const ConfigSchema = z.object({
   apiKey: z.string(),
   baseUrl: z.string().url(),
-  model: z.string()
+  model: z.string(),
+  autoApproveTools: z.boolean().optional()
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

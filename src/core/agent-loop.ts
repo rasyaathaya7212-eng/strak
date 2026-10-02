@@ -46,6 +46,48 @@ export class AgentLoop {
   }
 
   /**
+   * Request user approval for tool execution
+   */
+  private async requestToolApproval(toolCalls: any[], ui: any): Promise<boolean> {
+    const inquirer = require('inquirer');
+    const chalk = require('chalk');
+    
+    console.log('');
+    console.log(chalk.yellow('Do you want to proceed?'));
+    
+    const choices = [
+      { name: chalk.green('1. Yes, allow tools to execute'), value: 'yes' },
+      { name: chalk.green('2. Yes, and always allow from this session'), value: 'always' },
+      { name: chalk.red('3. No, cancel immediately'), value: 'no' }
+    ];
+    
+    const { approval } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'approval',
+        message: '',
+        choices: choices,
+        prefix: chalk.cyan(')')
+      }
+    ]);
+    
+    if (approval === 'always') {
+      // Store in config or session that user wants auto-approve
+      this.config.autoApproveTools = true;
+      console.log(chalk.green('\n  [OK] Auto-approval enabled for this session\n'));
+      return true;
+    }
+    
+    if (approval === 'no') {
+      console.log(chalk.red('\n  [CANCELLED] Tool execution cancelled\n'));
+      return false;
+    }
+    
+    console.log(chalk.green('\n  [OK] Proceeding with tool execution\n'));
+    return true;
+  }
+
+  /**
    * Main agent loop
    */
   async run(userInput: string, ui?: any): Promise<string> {
@@ -167,41 +209,82 @@ export class AgentLoop {
       }
       lastToolCalls = currentTools;
 
-      // 4. AI speaks about what it will do next
+      // 4. Request approval for tool execution
       if (ui && response.toolCalls.length > 0) {
         ui.stopThinking();
         
+        // Show what tools will be executed
         if (response.toolCalls.length === 1) {
           const tool = response.toolCalls[0];
-          ui.aiSpeaks(`I'll use the ${tool.name} tool to help with your request.`);
+          ui.aiSpeaks(`I want to use the ${tool.name} tool`);
         } else {
           const toolNames = response.toolCalls.map(t => t.name).join(', ');
-          ui.aiSpeaks(`I'll use multiple tools: ${toolNames}`);
+          ui.aiSpeaks(`I want to use ${response.toolCalls.length} tools: ${toolNames}`);
+        }
+
+        // Ask for permission (skip if auto-approved)
+        if (!this.config.autoApproveTools) {
+          const approved = await this.requestToolApproval(response.toolCalls, ui);
+          
+          if (!approved) {
+            // User denied - ask AI to respond without tools
+            if (ui) {
+              ui.info('Tool execution denied by user. Asking AI to respond without tools...');
+            }
+            
+            const noToolRequest: LLMRequest = {
+              model: this.config.model,
+              messages: [
+                ...this.sessionManager.getMessages(),
+                {
+                  role: 'system',
+                  content: 'The user did not approve tool usage. Please provide a response based only on your existing knowledge without using any tools.'
+                }
+              ],
+              temperature: 0.7,
+              maxTokens: 4096
+            };
+            
+            const noToolResponse = await this.llmRouter.chat(noToolRequest);
+            this.sessionManager.addMessage({
+              role: 'assistant',
+              content: noToolResponse.content
+            });
+            return noToolResponse.content;
+          }
+        } else {
+          ui.info('[Auto-approved] Executing tools...');
         }
       }
 
-      // 5. Execute each requested tool
+      // 5. Execute tools in parallel for better performance
       const toolResults: Message[] = [];
       
-      for (const toolCall of response.toolCalls) {
+      if (ui) {
+        ui.info(`Executing ${response.toolCalls.length} tool(s) in parallel...`);
+      }
+      
+      // Execute all tools in parallel using Promise.all
+      const toolPromises = response.toolCalls.map(async (toolCall) => {
         try {
-          // Execute tool
           const result = await this.toolExecutor.execute(toolCall.name, toolCall.args);
-          
-          // Store tool result
-          toolResults.push({
-            role: 'tool',
+          return {
+            role: 'tool' as const,
             toolCallId: toolCall.id,
             content: result
-          });
+          };
         } catch (error: any) {
-          toolResults.push({
-            role: 'tool',
+          return {
+            role: 'tool' as const,
             toolCallId: toolCall.id,
             content: `Error: ${error.message}`
-          });
+          };
         }
-      }
+      });
+      
+      // Wait for all tools to complete
+      const results = await Promise.all(toolPromises);
+      toolResults.push(...results);
 
       // 5. Add assistant message with tool calls
       this.sessionManager.addMessage({

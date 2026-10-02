@@ -16,53 +16,53 @@ export class UI {
   private resultCounter = 0;
   private detailsVisible = false; // Track if details panel is open
   private lastOutputLine = 0; // Track last line position
+  private keyListener: any = null; // Store listener reference
 
   constructor(config: any) {
     this.config = config;
-    this.setupKeyboardListener();
   }
 
   /**
-   * Setup keyboard listener for Ctrl+O
+   * Enable Ctrl+O listener (called after user input to avoid blocking)
    */
-  private setupKeyboardListener(): void {
-    if (process.stdin.isTTY) {
-      const readline = require('readline');
-      readline.emitKeypressEvents(process.stdin);
-      
-      if (process.stdin.setRawMode) {
-        process.stdin.setRawMode(true);
-      }
+  enableKeyListener(): void {
+    if (this.keyListener || !process.stdin.isTTY) {
+      return;
+    }
 
-      process.stdin.on('keypress', (str, key) => {
-        if (key.ctrl && key.name === 'o') {
-          // Toggle details panel
+    const readline = require('readline');
+    readline.emitKeypressEvents(process.stdin);
+
+    this.keyListener = (str: any, key: any) => {
+      if (key && key.ctrl && key.name === 'o') {
+        // Toggle details panel without blocking
+        process.nextTick(() => {
           if (this.detailsVisible) {
             this.hideDetailedResults();
           } else {
             this.showDetailedResults();
           }
-        }
-        
-        // Allow Ctrl+C to exit
-        if (key.ctrl && key.name === 'c') {
-          process.exit();
-        }
-      });
+        });
+      }
+    };
+
+    process.stdin.on('keypress', this.keyListener);
+  }
+
+  /**
+   * Disable key listener (cleanup)
+   */
+  disableKeyListener(): void {
+    if (this.keyListener) {
+      process.stdin.removeListener('keypress', this.keyListener);
+      this.keyListener = null;
     }
   }
 
   /**
-   * Show all detailed results
+   * Show all detailed results (public method for CLI command)
    */
-  private showDetailedResults(): void {
-    // Don't interrupt if still processing
-    if (this.spinnerInterval) {
-      return;
-    }
-
-    this.detailsVisible = true;
-    
+  showDetails(): void {
     console.log('\n');
     console.log(chalk.cyan('═'.repeat(70)));
     console.log(chalk.white.bold(' Tool Output Details'));
@@ -92,9 +92,17 @@ export class UI {
     
     console.log('');
     console.log(chalk.cyan('═'.repeat(70)));
-    console.log(chalk.gray('  Press Ctrl+O again to close'));
+    console.log(chalk.gray('  Type "details" to see this again'));
     console.log(chalk.cyan('═'.repeat(70)));
     console.log('');
+  }
+
+  /**
+   * Show all detailed results
+   */
+  private showDetailedResults(): void {
+    this.showDetails();
+    this.detailsVisible = true;
   }
 
   /**
@@ -149,7 +157,7 @@ export class UI {
     console.log(`  ${chalk.white('Directory: ')}${chalk.gray(currentDir)}`);
     console.log(infoBar);
     console.log('');
-    console.log(chalk.gray('  Tip: Press ') + chalk.cyan.bold('Ctrl+O') + chalk.gray(' to view detailed tool results'));
+    console.log(chalk.gray('  Tip: Type ') + chalk.cyan.bold('details') + chalk.gray(' to view full tool outputs'));
     console.log('');
   }
 
@@ -267,7 +275,7 @@ export class UI {
         console.log(chalk.gray('  │  ') + chalk.white(preview));
         
         if (lines.length > 1 || lines[0].length > 70) {
-          console.log(chalk.gray('  │  ') + chalk.dim('[Ctrl+O to see full output]'));
+          console.log(chalk.gray('  │  ') + chalk.dim('[Type "details" for full output]'));
         }
       }
     }

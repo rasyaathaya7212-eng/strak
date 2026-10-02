@@ -54,6 +54,12 @@ export class CLI {
 
         if (!input.trim()) continue;
 
+        // Handle details command
+        if (input.toLowerCase() === 'details' || input.toLowerCase() === '.details') {
+          this.ui.showDetails();
+          continue;
+        }
+
         // Handle exit commands
         if (input.toLowerCase() === 'exit' || input.toLowerCase() === 'quit') {
           console.log(chalk.cyan('\n┌─────────────────────────────────────────┐'));
