@@ -29,6 +29,15 @@ export class ToolExecutor {
     const startTime = Date.now();
     
     try {
+      // Handle meta tools (list_category_tools, get_tool_info)
+      if (toolName === 'list_category_tools') {
+        return this.handleListCategoryTools(args.category);
+      }
+      
+      if (toolName === 'get_tool_info') {
+        return this.handleGetToolInfo(args.tool_name);
+      }
+      
       // Display execution start with new UI
       if (this.ui) {
         this.ui.toolExecutionStart(toolName, args);
@@ -67,6 +76,45 @@ export class ToolExecutor {
       
       return errorMsg;
     }
+  }
+  
+  /**
+   * Handle list_category_tools meta tool
+   */
+  private handleListCategoryTools(category: string): string {
+    const tools = this.registry.getToolsByCategory(category);
+    
+    if (tools.length === 0) {
+      return `No tools found in category: ${category}`;
+    }
+    
+    let result = `\n=== Tools in ${category} (${tools.length} tools) ===\n\n`;
+    
+    tools.forEach((tool, idx) => {
+      result += `${idx + 1}. ${tool.name}\n`;
+      result += `   ${tool.description}\n\n`;
+    });
+    
+    return result;
+  }
+  
+  /**
+   * Handle get_tool_info meta tool
+   */
+  private handleGetToolInfo(toolName: string): string {
+    const tool = this.registry.getTool(toolName);
+    
+    if (!tool) {
+      return `Tool '${toolName}' not found. Use list_category_tools to browse available tools.`;
+    }
+    
+    let result = `\n=== Tool: ${tool.name} ===\n\n`;
+    result += `Description: ${tool.description}\n\n`;
+    result += `Parameters:\n`;
+    result += JSON.stringify(tool.parameters, null, 2);
+    result += `\n`;
+    
+    return result;
   }
 
   /**

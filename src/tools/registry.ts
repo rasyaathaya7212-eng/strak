@@ -118,25 +118,127 @@ export class ToolRegistry {
     return this.mcpTools.size;
   }
   /**
-   * Get tool definitions for LLM (ALL tools: built-in + MCP)
+   * Get tool definitions for LLM (Send category overview instead of all 203 tools)
    */
   getEssentialToolDefinitions(): any[] {
-    // Get ALL tools (200+ built-in + MCP tools)
     const allTools = this.getAllTools();
-    
     const mcpCount = this.mcpTools.size;
     const builtInCount = allTools.length - mcpCount;
     
-    console.log(`[INFO] Sending ${allTools.length} tools to AI (${builtInCount} built-in + ${mcpCount} MCP)`);
+    console.log(`[INFO] Sending 15 category overviews to AI (${builtInCount} tools available across categories + ${mcpCount} MCP)`);
 
-    return allTools.map(tool => ({
-      type: 'function',
-      function: {
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters
-      }
-    }));
+    // Instead of sending 203 tools, send 15 category descriptions
+    return [
+      {
+        type: 'function',
+        function: {
+          name: 'list_category_tools',
+          description: 'List all available tools in a specific category. Use this to discover which tools exist before calling them.',
+          parameters: {
+            type: 'object',
+            properties: {
+              category: {
+                type: 'string',
+                enum: [
+                  '01-filesystem',
+                  '02-terminal', 
+                  '03-web-search',
+                  '04-text',
+                  '05-agent',
+                  '06-memory',
+                  '07-git',
+                  '08-media',
+                  '09-automation',
+                  '10-communication',
+                  '11-data',
+                  '12-integration',
+                  '13-skills',
+                  '14-device',
+                  '15-mcp'
+                ],
+                description: 'Category to list tools from. Categories: 01-filesystem (read/write files), 02-terminal (shell commands), 03-web-search (search & fetch web), 04-text (text processing), 05-agent (agent control), 06-memory (save/recall), 07-git (version control), 08-media (images/video), 09-automation (scheduling), 10-communication (email/messaging), 11-data (JSON/CSV/math), 12-integration (APIs), 13-skills (canvas/plugins), 14-device (system), 15-mcp (MCP servers)'
+              }
+            },
+            required: ['category']
+          }
+        }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'get_tool_info',
+          description: 'Get detailed information about a specific tool including its parameters and usage.',
+          parameters: {
+            type: 'object',
+            properties: {
+              tool_name: {
+                type: 'string',
+                description: 'Name of the tool to get info about (e.g., "web_search", "read_file", "terminal")'
+              }
+            },
+            required: ['tool_name']
+          }
+        }
+      },
+      // Add commonly used tools directly for quick access
+      ...this.getCommonTools()
+    ];
+  }
+  
+  /**
+   * Get commonly used tools (to avoid extra lookups)
+   */
+  private getCommonTools(): any[] {
+    const commonToolNames = [
+      'read_file', 'write_file', 'read', 'write', 'ls',
+      'terminal', 'bash',
+      'web_search', 'web_fetch',
+      'memory_save', 'memory_recall'
+    ];
+    
+    return commonToolNames
+      .map(name => this.tools.get(name))
+      .filter(tool => tool !== undefined)
+      .map(tool => ({
+        type: 'function',
+        function: {
+          name: tool!.name,
+          description: tool!.description,
+          parameters: tool!.parameters
+        }
+      }));
+  }
+  
+  /**
+   * Get tools by category (for list_category_tools function)
+   */
+  getToolsByCategory(category: string): Tool[] {
+    const allTools = this.getAllTools();
+    
+    // Map category to tool name prefixes or patterns
+    const categoryMap: Record<string, string[]> = {
+      '01-filesystem': ['read_', 'write_', 'ls', 'mkdir', 'rm', 'cp', 'mv', 'file_', 'dir_'],
+      '02-terminal': ['terminal', 'bash', 'exec', 'shell', 'cmd', 'powershell', 'ssh'],
+      '03-web-search': ['web_', 'search', 'fetch', 'scrape', 'download', 'url_'],
+      '04-text': ['text_', 'grep', 'sed', 'awk', 'regex', 'string_'],
+      '05-agent': ['agent_', 'task_', 'delegate', 'spawn'],
+      '06-memory': ['memory_', 'context_', 'checkpoint'],
+      '07-git': ['git_'],
+      '08-media': ['image_', 'video_', 'audio_', 'pdf_', 'screenshot'],
+      '09-automation': ['schedule', 'cron', 'todo', 'webhook', 'batch'],
+      '10-communication': ['email_', 'slack_', 'discord_', 'telegram_', 'sms_'],
+      '11-data': ['json_', 'csv_', 'xml_', 'yaml_', 'calc_', 'date_', 'math_'],
+      '12-integration': ['api_', 'http_', 'notion_', 'github_', 'jira_'],
+      '13-skills': ['skill_', 'plugin_', 'canvas_'],
+      '14-device': ['device_', 'screen_', 'archive_', 'zip_', 'tar_', 'checksum'],
+      '15-mcp': ['mcp_']
+    };
+    
+    const patterns = categoryMap[category] || [];
+    
+    return allTools.filter(tool => 
+      patterns.some(pattern => tool.name.toLowerCase().includes(pattern.toLowerCase()))
+    );
   }
 }
 
