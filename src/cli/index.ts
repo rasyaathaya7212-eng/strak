@@ -75,7 +75,7 @@ export class CLI {
           const toolSuggestion = await this.handleToolSuggestion(input.slice(1));
           if (toolSuggestion) {
             // Add suggested tool to user's input context
-            const finalInput = `Gunakan tool "${toolSuggestion}" untuk: ` + await this.getFollowUpInput();
+            const finalInput = `Use tool "${toolSuggestion}" to: ` + await this.getFollowUpInput();
             const response = await this.gateway.handleInput(finalInput, this.ui);
             this.ui.assistantMessage(response);
           }
@@ -105,7 +105,7 @@ export class CLI {
       : tools;
 
     if (filteredTools.length === 0) {
-      console.log(chalk.yellow('  [!] Tidak ada tool yang cocok'));
+      console.log(chalk.yellow('  [!] No matching tools found'));
       return null;
     }
 
@@ -114,7 +114,7 @@ export class CLI {
       {
         type: 'list',
         name: 'selectedTool',
-        message: chalk.cyan('Pilih tool (ini hanya saran, AI akan tetap memutuskan):'),
+        message: chalk.cyan('Select tool (suggestion only, AI decides):'),
         choices: filteredTools.map(tool => ({
           name: chalk.green(tool),
           value: tool
@@ -135,7 +135,7 @@ export class CLI {
       {
         type: 'input',
         name: 'followUp',
-        message: chalk.cyan('Apa yang ingin Anda lakukan?'),
+        message: chalk.cyan('What would you like to do?'),
         prefix: chalk.magenta('┃')
       }
     ]);
