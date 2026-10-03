@@ -18,18 +18,14 @@
 
 ## Features
 
-- **🧠 Smart Structure Thinking** - Visual AI planning with mind maps (Ctrl+S)
-- **🎨 Cyberpunk UI** - Beautiful terminal interface with animations
-- **🛠️ 200+ Tools** - File operations, web search, git, media, automation, etc.
-- **🤖 AI-Powered** - Intelligent agent loop with tool calling
-- **⚡ Parallel Execution** - Run 5-8 tools simultaneously (5-8x speed)
-- **🔐 Tool Approval** - Interactive approval with auto-approve option
-- **💡 Tool Suggestion** - Type `/` for autocomplete
-- **🔗 MCP Support** - Compatible with Claude Code MCP servers (84+ extra tools)
-- **💾 Memory System** - Save and recall important information
-- **🔍 Web Search** - Integrated LangSearch API (95% accuracy, 100ms response)
-- **📁 File Management** - Read, write, edit files easily
-- **🎯 Rotating Tool Tips** - Learn tools every 6 seconds
+- **Cyberpunk UI** - Beautiful terminal interface dengan animasi
+- **200+ Tools** - File operations, web search, git, media, automation, dll
+- **AI-Powered** - Agent loop yang cerdas dengan tool calling
+- **Tool Suggestion** - Ketik `/` untuk autocomplete tool
+- **Auto Config** - Config otomatis tersalin ke folder kerja
+- **Memory System** - Simpan dan recall informasi penting
+- **Web Search** - Integrated LangSearch API (95% accuracy, 100ms response)
+- **File Management** - Read, write, edit files dengan mudah
 
 ---
 
@@ -81,63 +77,29 @@ strak
 strak
 
 # Normal chat
-┃ ▶ Hello
+┃ ▶ Halo, jelaskan apa itu AI
 
 # Use tool suggestion
 ┃ ▶ /web_search
-> Search for Bitcoin price today
+> Cari harga Bitcoin hari ini
 
 # Automated task
-┃ ▶ Read file package.json and create summary
-
-# View detailed results
-┃ ▶ details
+┃ ▶ Cari berita AI terbaru dan simpan ke file news.txt
 
 # Exit
 ┃ ▶ exit
 ```
 
-### Keyboard Shortcuts
-
-- **Ctrl+S** - Toggle Smart Structure Thinking Mode
-- **Ctrl+O** - Toggle detailed results panel
-- **Type `details`** - Show full tool outputs
-
-### 🧠 Smart Structure Thinking Mode
-
-Press **Ctrl+S** to enable visual planning mode. AI will:
-
-1. **Create a detailed plan** before executing any tools
-2. **Display the plan** at `http://localhost:3737` with interactive visualization
-3. **Update in real-time** as tools execute (planned → in-progress → completed/failed)
-4. **Export plans** as JSON for future sessions
-
-**When enabled, you'll see:**
-```
-⚡ SMART STRUCTURE ACTIVE (bottom right corner)
-```
-
-**Visual Planning:**
-- Mind map with connected nodes showing task hierarchy
-- Color-coded status: Yellow (planned), Blue (in-progress), Green (completed), Red (failed)
-- Click nodes to see details
-- Export button to save plan as JSON
-
-**Use cases:**
-- Complex multi-step tasks
-- Understanding AI's reasoning
-- Reusing successful thinking patterns
-- Teaching AI your workflow
-
 ### Tool Suggestion Feature
 
-Type `/` to view all tools:
+Ketik `/` untuk melihat semua tools:
 
-1. Type `/` or `/tool_name` (partial match)
-2. Select a tool using the arrow keys ↑↓
-3. Press Enter to confirm
-4. Enter your task
-5. The AI ​​will use the tool (as a suggestion)
+1. Ketik `/` atau `/nama_tool` (partial match)
+2. Pilih tool dengan arrow keys ↑↓
+3. Enter untuk konfirmasi
+4. Masukkan task Anda
+5. AI akan gunakan tool tersebut (sebagai saran)
+
 **Example:**
 ```
 ┃ ▶ /web
@@ -154,13 +116,13 @@ Type `/` to view all tools:
 
 ## Tools (200+)
 
-### Implemented Tools (14)
+### Implemented Tools
 
 | Tool | Description | Category |
 |------|-------------|----------|
-| `read_file` | Read file with line numbers | Filesystem |
-| `write_file` | Write/overwrite file | Filesystem |
-| `read` | Read file (Claude style) | Filesystem |
+| `read_file` | Baca file dengan line numbers | Filesystem |
+| `write_file` | Tulis/overwrite file | Filesystem |
+| `read` | Baca file (Claude style) | Filesystem |
 | `write` | Create/overwrite file | Filesystem |
 | `ls` | List directory | Filesystem |
 | `terminal` | Execute shell command | Terminal |
@@ -169,30 +131,8 @@ Type `/` to view all tools:
 | `web_fetch` | Fetch URL content | Web |
 | `memory_save` | Save to memory | Memory |
 | `memory_recall` | Read from memory | Memory |
-| `canvas_present` | Create HTML canvas/dashboard | Skills |
-| `canvas_snapshot` | Archive canvas as HTML/MD | Skills |
-| `canvas_eval` | Analyze canvas content | Skills |
 
-### 🔗 MCP (Model Context Protocol) Support
-
-STRAK supports MCP servers for extended capabilities. Configure in `.strak/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "tradingview": {
-      "command": "npx",
-      "args": ["-y", "@kevinslin/tradingview-mcp@latest"],
-      "disabled": false,
-      "autoApprove": []
-    }
-  }
-}
-```
-
-**Currently connected:** TradingView MCP (84 trading analysis tools)
-
-### All Categories (15)
+### All Categories (14)
 
 <details>
 <summary><b>Filesystem (25 tools)</b></summary>

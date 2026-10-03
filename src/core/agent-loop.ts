@@ -8,7 +8,6 @@ import { LLMRouter } from './llm-router';
 import { ToolExecutor } from '../tools/executor';
 import { Config, Message, LLMRequest } from '../types';
 import { MCPInitializer } from '../mcp/initializer';
-import chalk from 'chalk';
 
 export class AgentLoop {
   private sessionManager: SessionManager;
@@ -120,12 +119,6 @@ export class AgentLoop {
       ui.startThinking('Processing your request');
     }
     
-    // Reset plan for new query if Smart Structure is enabled
-    if (ui && ui.isSmartStructureEnabled()) {
-      const { structureThinking } = require('../features/structure-thinking');
-      structureThinking.resetPlan();
-    }
-    
     // Add user message to session
     this.sessionManager.addMessage({
       role: 'user',
@@ -161,121 +154,6 @@ Example BAD response:
 
 Help users accomplish their tasks efficiently while explaining your thought process.`
       });
-    }
-
-    // SMART STRUCTURE MODE: Create plan first before executing tools
-    if (ui && ui.isSmartStructureEnabled()) {
-      const { structureThinking } = require('../features/structure-thinking');
-      
-      if (!structureThinking.getCurrentPlan()) {
-        // Planning phase - AI must create detailed plan WITHOUT executing tools
-        if (ui) {
-          ui.stopThinking();
-          ui.info('🧠 SMART STRUCTURE MODE: Creating execution plan...');
-        }
-        
-        const planningRequest: LLMRequest = {
-          model: this.config.model,
-          messages: [
-            ...this.sessionManager.getMessages(),
-            {
-              role: 'system',
-              content: `SMART STRUCTURE MODE - PLANNING PHASE
-
-You MUST create a SHORT execution plan (max 5 steps) BEFORE using any tools.
-
-FORMAT (keep it concise):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📌 MAIN GOAL: [1 sentence description]
-
-🔹 STEP 1: [Step name]
-   → Action: [tool name]
-   → Expected: [brief result]
-
-🔹 STEP 2: [Step name]
-   → Action: [tool name]
-   → Expected: [brief result]
-
-(max 5 steps)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-IMPORTANT:
-- Keep each step to 1-2 lines ONLY
-- Do NOT write long explanations
-- Do NOT execute any tools yet
-- Maximum 5 steps total
-- Be concise and direct`
-            }
-          ],
-          temperature: 0.7,
-          maxTokens: 1500  // Limit tokens for planning
-        };
-        
-        try {
-          const planResponse = await this.llmRouter.chat(planningRequest);
-          
-          // Display the plan
-          if (ui) {
-            ui.stopThinking();
-            ui.aiReasoning(planResponse.content);
-          }
-          
-          // Parse plan and create structure
-          const plan = structureThinking.createPlan(userInput);
-          
-          // Parse steps from AI response
-          const stepMatches = planResponse.content.match(/🔹 STEP \d+: (.+?)(?=🔹 STEP|━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━|$)/gs);
-          if (stepMatches) {
-            stepMatches.forEach((stepText, idx) => {
-              const titleMatch = stepText.match(/🔹 STEP \d+: (.+?)[\n\r]/);
-              const actionMatch = stepText.match(/→ Action: (.+?)[\n\r]/);
-              const expectedMatch = stepText.match(/→ Expected: (.+?)[\n\r]/);
-              
-              if (titleMatch) {
-                const title = titleMatch[1].trim();
-                const action = actionMatch ? actionMatch[1].trim() : '';
-                const expected = expectedMatch ? expectedMatch[1].trim() : '';
-                
-                structureThinking.addNode('root', {
-                  type: 'subtask',
-                  title: title,
-                  description: `${action}\nExpected: ${expected}`,
-                  status: 'planned'
-                });
-              }
-            });
-          }
-          
-          // Display localhost URL
-          console.log('');
-          console.log(chalk.green('╔' + '═'.repeat(68) + '╗'));
-          console.log(chalk.green('║') + chalk.white.bold(' 🧠 Smart Structure Visualization') + ' '.repeat(34) + chalk.green('║'));
-          console.log(chalk.green('╠' + '═'.repeat(68) + '╣'));
-          console.log(chalk.green('║') + chalk.white(' Open in browser: ') + chalk.cyan.bold(`http://localhost:${structureThinking['port']}`) + ' '.repeat(68 - 18 - `http://localhost:${structureThinking['port']}`.length) + chalk.green('║'));
-          console.log(chalk.green('║') + ' '.repeat(68) + chalk.green('║'));
-          console.log(chalk.green('║') + chalk.gray(' The plan will update in real-time as AI executes tools') + ' '.repeat(13) + chalk.green('║'));
-          console.log(chalk.green('╚' + '═'.repeat(68) + '╝'));
-          console.log('');
-          
-          // Add plan to session
-          this.sessionManager.addMessage({
-            role: 'assistant',
-            content: planResponse.content
-          });
-        } catch (error: any) {
-          // If planning fails, disable smart structure and continue normally
-          if (ui) {
-            ui.stopThinking();
-            ui.error(`Planning failed: ${error.message}`);
-            ui.info('Continuing without Smart Structure mode...');
-          }
-          
-          const { structureThinking } = require('../features/structure-thinking');
-          structureThinking.disable();
-        }
-        
-        // Continue to execution phase...
-      }
     }
 
     // Main loop - No hard limit, agent works until task is complete
@@ -445,43 +323,15 @@ IMPORTANT:
       }
       
       // Execute all tools in parallel using Promise.all
-      const toolPromises = response.toolCalls.map(async (toolCall, idx) => {
+      const toolPromises = response.toolCalls.map(async (toolCall) => {
         try {
-          // Update plan status if smart structure enabled
-          if (ui && ui.isSmartStructureEnabled()) {
-            const { structureThinking } = require('../features/structure-thinking');
-            const plan = structureThinking.getCurrentPlan();
-            if (plan && plan.history[idx]) {
-              structureThinking.updateNodeStatus(plan.history[idx].id, 'in-progress');
-            }
-          }
-          
           const result = await this.toolExecutor.execute(toolCall.name, toolCall.args);
-          
-          // Mark as completed
-          if (ui && ui.isSmartStructureEnabled()) {
-            const { structureThinking } = require('../features/structure-thinking');
-            const plan = structureThinking.getCurrentPlan();
-            if (plan && plan.history[idx]) {
-              structureThinking.updateNodeStatus(plan.history[idx].id, 'completed');
-            }
-          }
-          
           return {
             role: 'tool' as const,
             toolCallId: toolCall.id,
             content: result
           };
         } catch (error: any) {
-          // Mark as failed
-          if (ui && ui.isSmartStructureEnabled()) {
-            const { structureThinking } = require('../features/structure-thinking');
-            const plan = structureThinking.getCurrentPlan();
-            if (plan && plan.history[idx]) {
-              structureThinking.updateNodeStatus(plan.history[idx].id, 'failed');
-            }
-          }
-          
           return {
             role: 'tool' as const,
             toolCallId: toolCall.id,

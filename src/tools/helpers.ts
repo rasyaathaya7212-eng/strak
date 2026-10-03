@@ -15,7 +15,7 @@ export function createStubTool(name: string, description: string, category: stri
     category,
     parameters: z.object({}),
     handler: async () => {
-      return `Tool [${name}] not yet implemented`;
+      return `Tool [${name}] belum diimplementasikan`;
     }
   };
 }

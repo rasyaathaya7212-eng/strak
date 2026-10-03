@@ -8,20 +8,16 @@ import chalk from 'chalk';
 import { UI } from './ui';
 import { Gateway } from '../gateway/router';
 import { loadConfig, validateConfig } from '../utils/config';
-import { structureThinking } from '../features/structure-thinking';
-import { ToolTips } from './tool-tips';
 
 export class CLI {
   private ui: UI;
   private gateway: Gateway;
   private config: any;
-  private toolTips: ToolTips;
 
   constructor() {
     this.config = loadConfig();
     this.ui = new UI(this.config);
     this.gateway = new Gateway(this.config);
-    this.toolTips = new ToolTips();
   }
 
   /**
@@ -36,9 +32,6 @@ export class CLI {
 
     // Display header
     this.ui.displayHeader();
-    
-    // Start rotating tool tips
-    this.toolTips.start();
 
     // Main interaction loop
     await this.interactionLoop();
@@ -61,18 +54,6 @@ export class CLI {
 
         if (!input.trim()) continue;
 
-        // Check if smart structure was just enabled and start server
-        if (this.ui.isSmartStructureEnabled() && !structureThinking.isEnabled()) {
-          structureThinking.enable();
-          try {
-            const url = await structureThinking.startServer();
-            console.log(chalk.green(`\n[SMART STRUCTURE] Visualization server started at: ${chalk.cyan.bold(url)}`));
-            console.log(chalk.gray('Open this URL in your browser to see AI planning visualization\n'));
-          } catch (error: any) {
-            console.log(chalk.red(`\n[ERROR] Failed to start visualization server: ${error.message}\n`));
-          }
-        }
-
         // Handle details command
         if (input.toLowerCase() === 'details' || input.toLowerCase() === '.details') {
           this.ui.showDetails();
@@ -94,7 +75,7 @@ export class CLI {
           const toolSuggestion = await this.handleToolSuggestion(input.slice(1));
           if (toolSuggestion) {
             // Add suggested tool to user's input context
-            const finalInput = `Use tool "${toolSuggestion}" to: ` + await this.getFollowUpInput();
+            const finalInput = `Gunakan tool "${toolSuggestion}" untuk: ` + await this.getFollowUpInput();
             const response = await this.gateway.handleInput(finalInput, this.ui);
             this.ui.assistantMessage(response);
           }
@@ -124,7 +105,7 @@ export class CLI {
       : tools;
 
     if (filteredTools.length === 0) {
-      console.log(chalk.yellow('  [!] No matching tools found'));
+      console.log(chalk.yellow('  [!] Tidak ada tool yang cocok'));
       return null;
     }
 
@@ -133,7 +114,7 @@ export class CLI {
       {
         type: 'list',
         name: 'selectedTool',
-        message: chalk.cyan('Select tool (suggestion only, AI decides):'),
+        message: chalk.cyan('Pilih tool (ini hanya saran, AI akan tetap memutuskan):'),
         choices: filteredTools.map(tool => ({
           name: chalk.green(tool),
           value: tool
@@ -154,7 +135,7 @@ export class CLI {
       {
         type: 'input',
         name: 'followUp',
-        message: chalk.cyan('What would you like to do?'),
+        message: chalk.cyan('Apa yang ingin Anda lakukan?'),
         prefix: chalk.magenta('┃')
       }
     ]);

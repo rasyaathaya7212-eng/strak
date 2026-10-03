@@ -63,7 +63,7 @@ export const webTools: Tool[] = [
         }
 
         // Format results
-        let output = `[SEARCH] Search results for "${args.query}" (${results.length} results):\n\n`;
+        let output = `[SEARCH] Hasil pencarian "${args.query}" (${results.length} hasil):\n\n`;
         
         results.forEach((page: any, index: number) => {
           output += `${index + 1}. **${page.name || 'No title'}**\n`;

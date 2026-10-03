@@ -36,7 +36,7 @@ export const filesystemTools: Tool[] = [
         
         return lines.map((line, idx) => `${idx + 1}: ${line}`).join('\n');
       } catch (error: any) {
-        return `Error reading file: ${error.message}`;
+        return `Error membaca file: ${error.message}`;
       }
     }
   },
@@ -57,9 +57,9 @@ export const filesystemTools: Tool[] = [
       try {
         await fs.ensureDir(path.dirname(args.path));
         await fs.writeFile(args.path, args.content, 'utf-8');
-        return `File written successfully: ${args.path}`;
+        return `File berhasil ditulis: ${args.path}`;
       } catch (error: any) {
-        return `Error writing file: ${error.message}`;
+        return `Error menulis file: ${error.message}`;
       }
     }
   },
