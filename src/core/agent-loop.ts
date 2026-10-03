@@ -36,6 +36,58 @@ export class AgentLoop {
   }
 
   /**
+   * Parse text-based tool invocations from AI response
+   * Format: [TOOL: tool_name]\nparam: value\n[/TOOL]
+   */
+  private parseTextBasedToolCalls(content: string): any[] {
+    const toolCalls: any[] = [];
+    
+    // Pattern: [TOOL: tool_name]...params...[/TOOL]
+    const toolPattern = /\[TOOL:\s*(\w+)\]([\s\S]*?)\[\/TOOL\]/g;
+    let match;
+    let callIndex = 0;
+    
+    while ((match = toolPattern.exec(content)) !== null) {
+      const toolName = match[1];
+      const paramsBlock = match[2].trim();
+      
+      // Parse parameters from the block
+      const params: any = {};
+      const paramLines = paramsBlock.split('\n');
+      
+      for (const line of paramLines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) continue;
+        
+        // Parse "key: value" format
+        const paramMatch = trimmed.match(/^(\w+):\s*(.+)$/);
+        if (paramMatch) {
+          const key = paramMatch[1];
+          let value = paramMatch[2].trim();
+          
+          // Remove quotes if present
+          if ((value.startsWith('"') && value.endsWith('"')) || 
+              (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+          }
+          
+          params[key] = value;
+        }
+      }
+      
+      toolCalls.push({
+        id: `text_call_${callIndex++}`,
+        name: toolName,
+        args: params
+      });
+      
+      console.log(`[TextTools] Parsed ${toolName}:`, JSON.stringify(params));
+    }
+    
+    return toolCalls;
+  }
+
+  /**
    * Extract tool parameters from AI reasoning text (fallback when model doesn't provide args)
    */
   private extractToolParameters(toolName: string, reasoningText: string, userInput: string): any {
@@ -310,60 +362,61 @@ NOW CREATE YOUR PLAN for: ${userInput}`
     if (messages.length === 1) {
       this.sessionManager.addMessage({
         role: 'system',
-        content: `You are STRAK AGENT, a powerful AI assistant with access to 200+ tools and MCP servers.
+        content: `You are STRAK AGENT, a powerful AI assistant with access to 200+ tools.
 
-CRITICAL RULES FOR TOOL USAGE:
-1. When calling a tool, you MUST provide ALL required parameters in the "arguments" field
-2. Arguments must be a valid JSON object with parameter names and values
-3. NEVER call a tool without providing its required parameters
+IMPORTANT: To use tools, write them in this TEXT FORMAT (NOT function calls):
 
-CORRECT tool call example:
-{
-  "id": "call_123",
-  "type": "function",
-  "function": {
-    "name": "web_search",
-    "arguments": "{\\"query\\": \\"football score websites\\"}"
-  }
-}
+[TOOL: tool_name]
+parameter1: value1
+parameter2: value2
+[/TOOL]
 
-WRONG tool call (DO NOT DO THIS):
-{
-  "id": "call_123",
-  "type": "function",
-  "function": {
-    "name": "web_search",
-    "arguments": ""
-  }
-}
+EXAMPLES:
 
-TOOL EXAMPLES:
-- web_search: MUST include "query" parameter
-  Example: {"query": "latest news about AI"}
-  
-- write_file: MUST include "path" and "content" parameters
-  Example: {"path": "test.txt", "content": "Hello World"}
-  
-- terminal: MUST include "command" parameter
-  Example: {"command": "ls -la"}
+Search the web:
+[TOOL: web_search]
+query: latest Bitcoin price
+[/TOOL]
 
-If you don't know what parameters to use, provide reasonable defaults based on the user's request.
+Create a file:
+[TOOL: write_file]
+path: test.txt
+content: Hello World
+[/TOOL]
 
-EFFICIENCY RULES:
-1. Be EFFICIENT - only use tools when absolutely necessary
-2. If you get good results from initial tools, STOP and provide the answer
-3. Don't keep searching or fetching if you already have sufficient information
-4. Quality over quantity - 1-2 good sources are better than 10 mediocre ones
-5. If a tool fails, try ONE alternative approach, then move on
-6. Prioritize using the minimum number of tools to answer the question
+Read a file:
+[TOOL: read_file]
+path: config.json
+[/TOOL]
 
-COMMUNICATION STYLE:
-When you plan to use tools, ALWAYS explain your reasoning first:
-- WHY you need these specific tools
-- WHAT information you're looking for
-- HOW this will help answer the user's question
+Run terminal command:
+[TOOL: terminal]
+command: ls -la
+[/TOOL]
 
-Help users accomplish their tasks efficiently while explaining your thought process.`
+List directory:
+[TOOL: ls]
+path: ./src
+[/TOOL]
+
+RULES:
+1. Always use [TOOL: name] format to invoke tools
+2. Put each parameter on a new line with "param: value" format
+3. Close with [/TOOL]
+4. You can use multiple tools in one response
+5. Explain your reasoning BEFORE the tool invocations
+
+AVAILABLE TOOLS CATEGORIES:
+- Filesystem: read_file, write_file, read, write, ls, etc.
+- Terminal: terminal, bash
+- Web: web_search, web_fetch
+- Memory: memory_save, memory_recall
+- Canvas: canvas_present, canvas_snapshot, canvas_eval
+- And 188 more tools across 15 categories
+
+When you need a tool from a category, use list_category_tools or get_tool_info to discover available tools.
+
+Be efficient and only use necessary tools. Explain your thought process.`
       });
     }
 
@@ -372,6 +425,9 @@ Help users accomplish their tasks efficiently while explaining your thought proc
     const warningThreshold = 15; // Show warning after 15 iterations
     let lastToolCalls: string[] = [];
     let repeatCount = 0;
+    
+    // Disable function calling for DeepSeek - use text-based tool invocation instead
+    const useTextBasedTools = true;
 
     while (true) { // Infinite loop - agent must complete the task!
       iterations++;
@@ -388,7 +444,7 @@ Help users accomplish their tasks efficiently while explaining your thought proc
       const request: LLMRequest = {
         model: this.config.model,
         messages: this.sessionManager.getMessages(),
-        tools: this.toolExecutor.getRegistry().getEssentialToolDefinitions(),
+        tools: useTextBasedTools ? undefined : this.toolExecutor.getRegistry().getEssentialToolDefinitions(), // Disable function calling
         temperature: 0.7,
         maxTokens: 4096
       };
@@ -419,6 +475,20 @@ Help users accomplish their tasks efficiently while explaining your thought proc
       }
       
       const response = await this.llmRouter.chat(request);
+
+      // 3. Parse text-based tool invocations if function calling disabled
+      let parsedToolCalls: any[] = [];
+      
+      if (useTextBasedTools && response.content) {
+        parsedToolCalls = this.parseTextBasedToolCalls(response.content);
+        
+        if (parsedToolCalls.length > 0) {
+          console.log(`[TextTools] Parsed ${parsedToolCalls.length} tool invocations from text`);
+          
+          // Convert to standard tool call format
+          response.toolCalls = parsedToolCalls;
+        }
+      }
 
       // 3. Check if LLM wants to use tools
       if (!response.toolCalls || response.toolCalls.length === 0) {
