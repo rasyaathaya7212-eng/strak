@@ -36,6 +36,56 @@ export class AgentLoop {
   }
 
   /**
+   * Parse mind map nodes from text format
+   */
+  private parseMindMapNodes(content: string, userInput: string): any[] {
+    const nodes: any[] = [];
+    
+    // Pattern: [NODE: type]\n...properties...\n[/NODE]
+    const nodePattern = /\[NODE:\s*(\w+)\]([\s\S]*?)\[\/NODE\]/g;
+    let match;
+    
+    while ((match = nodePattern.exec(content)) !== null) {
+      const nodeType = match[1]; // root, child, etc.
+      const propsBlock = match[2].trim();
+      
+      const node: any = {
+        type: nodeType,
+        title: '',
+        description: '',
+        status: 'planned',
+        parent: 'root'
+      };
+      
+      // Parse properties
+      const propLines = propsBlock.split('\n');
+      for (const line of propLines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        
+        const propMatch = trimmed.match(/^(\w+):\s*(.+)$/);
+        if (propMatch) {
+          const key = propMatch[1];
+          let value = propMatch[2].trim();
+          
+          // Remove quotes
+          if ((value.startsWith('"') && value.endsWith('"')) || 
+              (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+          }
+          
+          node[key] = value;
+        }
+      }
+      
+      nodes.push(node);
+      console.log(`[MindMap] Node: ${node.title} (parent: ${node.parent})`);
+    }
+    
+    return nodes;
+  }
+
+  /**
    * Parse text-based tool invocations from AI response
    * Format: [TOOL: tool_name]\nparam: value\n[/TOOL]
    */
@@ -284,50 +334,94 @@ export class AgentLoop {
       // Reset plan for new query
       structureThinking.resetPlan();
       
-      // Create planning request
+      // Create planning request with TEXT-BASED format
       const planningRequest: LLMRequest = {
         model: this.config.model,
         messages: [
           {
             role: 'system',
-            content: `You are STRAK AGENT in SMART STRUCTURE MODE. Your task is to PLAN before acting.
+            content: `You are STRAK AGENT in SMART STRUCTURE MODE. Create a MIND MAP plan.
 
-CRITICAL RULES FOR PLANNING:
-1. Keep your plan SHORT - maximum 1500 tokens
-2. Structure your plan as a step-by-step breakdown
-3. Format your response as markdown with clear sections:
-   - PLAN: Main goal and approach
-   - STEPS: List each step with what tool(s) you'll use and why
+FORMAT YOUR PLAN AS A MIND MAP:
 
-Example GOOD plan:
-## PLAN:
-Build a weather app that fetches real-time data from OpenWeather API
+[NODE: root]
+title: Main Goal
+description: Brief description of the main task
+status: planned
+[/NODE]
 
-## STEPS:
-1. web_search - Find OpenWeather API documentation and endpoints
-2. write_file - Create HTML structure with input and display
-3. write_file - Add JavaScript fetch logic
-4. bash - Test in browser
+[NODE: child]
+parent: root
+title: Step 1 - Research
+description: Search for information about X
+tool: web_search
+status: planned
+[/NODE]
 
-Example BAD plan (TOO LONG):
-[hundreds of lines of detailed explanations, code snippets, etc.]
+[NODE: child]
+parent: root
+title: Step 2 - Create Files
+description: Write code files
+tool: write_file
+status: planned
+[/NODE]
 
-NOW CREATE YOUR PLAN for: ${userInput}`
+RULES:
+1. Start with ONE root node (the main goal)
+2. Add child nodes for each major step
+3. Each node must have: title, description, status
+4. Keep it SHORT and FOCUSED (max 8 nodes total)
+5. Use clear, actionable titles
+
+NOW CREATE MIND MAP for: ${userInput}`
           }
         ],
         temperature: 0.7,
-        maxTokens: 1500 // SHORT planning phase
+        maxTokens: 2000,
+        tools: undefined // No function calling for planning
       };
       
       try {
         if (ui) {
-          ui.info('🧠 Smart Structure: Creating execution plan...');
+          ui.info('🧠 Smart Structure: Creating mind map plan...');
         }
         
         const planResponse = await this.llmRouter.chat(planningRequest);
         
+        // Parse mind map nodes from response
+        const nodes = this.parseMindMapNodes(planResponse.content || '', userInput);
+        
         // Create plan structure
-        structureThinking.createPlan(userInput);
+        const plan = structureThinking.createPlan(userInput);
+        
+        // Add nodes to plan
+        if (nodes.length > 0) {
+          console.log(`[MindMap] Created ${nodes.length} nodes`);
+          
+          // Add nodes to structure thinking
+          for (const node of nodes) {
+            if (node.parent) {
+              try {
+                structureThinking.addNode(node.parent, {
+                  type: 'action',
+                  title: node.title,
+                  description: node.description,
+                  status: 'planned',
+                  metadata: { tool: node.tool }
+                });
+              } catch (e) {
+                // Parent not found, add to root
+                structureThinking.addNode('root', {
+                  type: 'action',
+                  title: node.title,
+                  description: node.description,
+                  status: 'planned',
+                  metadata: { tool: node.tool }
+                });
+              }
+            }
+          }
+        }
         
         // Display the plan
         if (ui && planResponse.content) {
@@ -336,11 +430,11 @@ NOW CREATE YOUR PLAN for: ${userInput}`
           // Show Smart Structure visualization info
           const serverUrl = 'http://localhost:3737';
           console.log(chalk.cyan('╔' + '═'.repeat(68) + '╗'));
-          console.log(chalk.cyan('║') + chalk.yellow.bold(' 🧠 Smart Structure Visualization') + ' '.repeat(35) + chalk.cyan('║'));
+          console.log(chalk.cyan('║') + chalk.yellow.bold(' 🧠 Mind Map Visualization') + ' '.repeat(42) + chalk.cyan('║'));
           console.log(chalk.cyan('╠' + '═'.repeat(68) + '╣'));
           console.log(chalk.cyan('║') + chalk.white(' Open in browser: ') + chalk.green.underline(serverUrl) + ' '.repeat(32) + chalk.cyan('║'));
           console.log(chalk.cyan('║') + ' '.repeat(68) + chalk.cyan('║'));
-          console.log(chalk.cyan('║') + chalk.gray(' The plan will update in real-time as AI executes tools') + ' '.repeat(13) + chalk.cyan('║'));
+          console.log(chalk.cyan('║') + chalk.gray(' Watch the mind map update in real-time!') + ' '.repeat(28) + chalk.cyan('║'));
           console.log(chalk.cyan('╚' + '═'.repeat(68) + '╝'));
           console.log('');
         }
@@ -348,12 +442,13 @@ NOW CREATE YOUR PLAN for: ${userInput}`
         // Add plan to conversation context
         this.sessionManager.addMessage({
           role: 'assistant',
-          content: `[PLAN CREATED]\n${planResponse.content}\n\n[NOW EXECUTING PLAN]`
+          content: `[MIND MAP CREATED - ${nodes.length} nodes]\n${planResponse.content}\n\n[NOW EXECUTING PLAN]`
         });
       } catch (planError: any) {
         if (ui) {
           ui.warning(`Planning failed: ${planError.message}. Continuing without plan...`);
         }
+        console.error('[Planning Error]', planError.stack || planError);
       }
     }
 
