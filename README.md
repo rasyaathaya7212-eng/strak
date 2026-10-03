@@ -77,14 +77,14 @@ strak
 strak
 
 # Normal chat
-┃ ▶ Halo, jelaskan apa itu AI
+┃ ▶ Hello
 
 # Use tool suggestion
 ┃ ▶ /web_search
 > Cari harga Bitcoin hari ini
 
 # Automated task
-┃ ▶ Cari berita AI terbaru dan simpan ke file news.txt
+┃ ▶ Try tool .... and write in ....txt
 
 # Exit
 ┃ ▶ exit
@@ -92,14 +92,13 @@ strak
 
 ### Tool Suggestion Feature
 
-Ketik `/` untuk melihat semua tools:
+Type `/` to view all tools:
 
-1. Ketik `/` atau `/nama_tool` (partial match)
-2. Pilih tool dengan arrow keys ↑↓
-3. Enter untuk konfirmasi
-4. Masukkan task Anda
-5. AI akan gunakan tool tersebut (sebagai saran)
-
+1. Type `/` or `/tool_name` (partial match)
+2. Select a tool using the arrow keys ↑↓
+3. Press Enter to confirm
+4. Enter your task
+5. The AI ​​will use the tool (as a suggestion)
 **Example:**
 ```
 ┃ ▶ /web
