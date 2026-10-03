@@ -17,25 +17,31 @@ export class UI {
   private detailsVisible = false; // Track if details panel is open
   private lastOutputLine = 0; // Track last line position
   private keyListener: any = null; // Store listener reference
+  private smartStructureEnabled: boolean = false; // Smart structure mode
 
   constructor(config: any) {
     this.config = config;
+    this.setupKeyboardListener();
   }
 
   /**
-   * Enable Ctrl+O listener (called after user input to avoid blocking)
+   * Setup keyboard listener for Ctrl+S (Smart Structure) and Ctrl+O (Details)
    */
-  enableKeyListener(): void {
-    if (this.keyListener || !process.stdin.isTTY) {
-      return;
-    }
+  private setupKeyboardListener(): void {
+    if (!process.stdin.isTTY) return;
 
     const readline = require('readline');
     readline.emitKeypressEvents(process.stdin);
 
-    this.keyListener = (str: any, key: any) => {
+    process.stdin.on('keypress', (str: any, key: any) => {
+      if (key && key.ctrl && key.name === 's') {
+        // Toggle smart structure mode
+        this.smartStructureEnabled = !this.smartStructureEnabled;
+        this.showSmartStructureStatus();
+      }
+      
       if (key && key.ctrl && key.name === 'o') {
-        // Toggle details panel without blocking
+        // Toggle details panel
         process.nextTick(() => {
           if (this.detailsVisible) {
             this.hideDetailedResults();
@@ -44,9 +50,41 @@ export class UI {
           }
         });
       }
-    };
+    });
+  }
 
-    process.stdin.on('keypress', this.keyListener);
+  /**
+   * Show smart structure status indicator at bottom right
+   */
+  private showSmartStructureStatus(): void {
+    const rows = process.stdout.rows || 24;
+    const cols = process.stdout.columns || 80;
+    
+    // Save cursor, move to bottom right, show indicator, restore cursor
+    process.stdout.write('\x1b7'); // Save cursor position
+    process.stdout.write(`\x1b[${rows};${Math.max(1, cols - 30)}H`); // Move to bottom right
+    
+    if (this.smartStructureEnabled) {
+      process.stdout.write(chalk.bgGreen.black.bold(' ⚡ SMART STRUCTURE ACTIVE '));
+    } else {
+      process.stdout.write(' '.repeat(27)); // Clear indicator
+    }
+    
+    process.stdout.write('\x1b8'); // Restore cursor position
+  }
+
+  /**
+   * Check if smart structure is enabled
+   */
+  isSmartStructureEnabled(): boolean {
+    return this.smartStructureEnabled;
+  }
+
+  /**
+   * Enable Ctrl+O listener (legacy - now handled in setupKeyboardListener)
+   */
+  enableKeyListener(): void {
+    // No-op - keeping for backward compatibility
   }
 
   /**

@@ -8,11 +8,14 @@ import chalk from 'chalk';
 import { UI } from './ui';
 import { Gateway } from '../gateway/router';
 import { loadConfig, validateConfig } from '../utils/config';
+import { structureThinking } from '../features/structure-thinking';
 
 export class CLI {
   private ui: UI;
   private gateway: Gateway;
   private config: any;
+  private toolTipInterval: NodeJS.Timeout | null = null;
+  private currentToolTipIndex: number = 0;
 
   constructor() {
     this.config = loadConfig();
