@@ -244,63 +244,64 @@ export class StructureThinking {
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            background: #0a0e27;
             color: #fff;
             overflow: hidden;
         }
         
         #header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 25px 30px;
+            padding: 20px 30px;
             text-align: center;
             box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
-            border-bottom: 3px solid #667eea;
+            border-bottom: 2px solid #667eea;
         }
         
         #header h1 {
-            font-size: 2.2rem;
-            margin-bottom: 8px;
+            font-size: 2rem;
+            margin-bottom: 5px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
         #header p {
             opacity: 0.95;
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
         
         #container {
             display: flex;
-            height: calc(100vh - 120px);
+            height: calc(100vh - 100px);
         }
         
         #graph {
             flex: 1;
             position: relative;
             padding: 20px;
+            overflow: hidden;
         }
         
         #sidebar {
-            width: 380px;
+            width: 350px;
             background: rgba(26, 31, 58, 0.95);
             padding: 25px;
             overflow-y: auto;
-            border-left: 3px solid #667eea;
+            border-left: 2px solid #667eea;
             box-shadow: -5px 0 20px rgba(0,0,0,0.3);
         }
         
         #sidebar h2 {
             color: #667eea;
             margin-bottom: 20px;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             padding-bottom: 10px;
             border-bottom: 2px solid #667eea;
         }
         
         .node-detail {
             background: linear-gradient(135deg, #1a1f3a 0%, #0a0e27 100%);
-            padding: 18px;
-            border-radius: 10px;
-            margin-bottom: 18px;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
             border-left: 4px solid #667eea;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             transition: transform 0.2s, box-shadow 0.2s;
@@ -313,8 +314,8 @@ export class StructureThinking {
         
         .node-detail h3 {
             color: #fff;
-            font-size: 1.1rem;
-            margin-bottom: 10px;
+            font-size: 1rem;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -322,18 +323,18 @@ export class StructureThinking {
         
         .node-detail p {
             color: #ccc;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            margin-top: 8px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-top: 5px;
         }
         
         .status-badge {
             display: inline-block;
-            padding: 5px 12px;
-            border-radius: 15px;
-            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
             font-weight: 700;
-            margin-top: 10px;
+            margin-top: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -341,26 +342,26 @@ export class StructureThinking {
         .status-planned { 
             background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
             color: #000;
-            box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
+            box-shadow: 0 2px 5px rgba(251, 191, 36, 0.3);
         }
         
         .status-in-progress { 
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: #fff;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
             animation: pulse 2s infinite;
         }
         
         .status-completed { 
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: #fff;
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3);
         }
         
         .status-failed { 
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             color: #fff;
-            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+            box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3);
         }
         
         @keyframes pulse {
@@ -372,11 +373,11 @@ export class StructureThinking {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 14px 28px;
+            padding: 12px 24px;
             border-radius: 8px;
             cursor: pointer;
             width: 100%;
-            font-size: 1.05rem;
+            font-size: 1rem;
             font-weight: 600;
             margin-top: 15px;
             transition: all 0.3s;
@@ -392,62 +393,59 @@ export class StructureThinking {
             transform: translateY(0);
         }
         
-        /* Network Graph Styles */
+        /* Mind Map Styles */
         .link {
             fill: none;
             stroke: #667eea;
-            stroke-width: 3px;
+            stroke-width: 2px;
             stroke-opacity: 0.6;
-            transition: stroke-width 0.3s;
         }
         
-        .link:hover {
-            stroke-width: 5px;
-            stroke-opacity: 1;
-        }
-        
-        .node-box {
+        .node-group {
             cursor: pointer;
             transition: all 0.3s;
         }
         
-        .node-box rect {
-            fill: #1a1f3a;
+        .node-box {
+            fill: rgba(26, 31, 58, 0.95);
             stroke: #667eea;
-            stroke-width: 3px;
-            rx: 10;
-            ry: 10;
+            stroke-width: 2px;
+            rx: 12;
+            ry: 12;
             filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
         }
         
-        .node-box:hover rect {
-            stroke-width: 4px;
+        .node-group:hover .node-box {
+            stroke-width: 3px;
             filter: drop-shadow(0 6px 15px rgba(102, 126, 234, 0.6));
         }
         
-        .node-box.completed rect { 
-            fill: #0a3d2a;
+        .node-group.completed .node-box { 
+            fill: rgba(16, 185, 129, 0.2);
             stroke: #10b981;
+            stroke-width: 2px;
         }
         
-        .node-box.in-progress rect { 
-            fill: #1e3a8a;
+        .node-group.in-progress .node-box { 
+            fill: rgba(59, 130, 246, 0.2);
             stroke: #3b82f6;
-            animation: glow 2s infinite;
+            stroke-width: 2px;
+            animation: boxGlow 2s infinite;
         }
         
-        .node-box.failed rect { 
-            fill: #4c1d1d;
+        .node-group.failed .node-box { 
+            fill: rgba(239, 68, 68, 0.2);
             stroke: #ef4444;
+            stroke-width: 2px;
         }
         
-        .node-box.root rect {
-            fill: #2d1b4e;
+        .node-group.root .node-box {
+            fill: rgba(167, 139, 250, 0.2);
             stroke: #a78bfa;
-            stroke-width: 4px;
+            stroke-width: 3px;
         }
         
-        @keyframes glow {
+        @keyframes boxGlow {
             0%, 100% { 
                 filter: drop-shadow(0 4px 10px rgba(59, 130, 246, 0.5));
             }
@@ -456,35 +454,41 @@ export class StructureThinking {
             }
         }
         
-        .node-box text {
+        .node-title {
             fill: #fff;
-            font-size: 14px;
-            font-weight: 600;
-            pointer-events: none;
-            text-anchor: middle;
-        }
-        
-        .node-box .node-title {
             font-size: 15px;
             font-weight: 700;
+            text-anchor: start;
         }
         
-        .node-box .node-desc {
-            font-size: 11px;
+        .node-desc {
             fill: #aaa;
+            font-size: 12px;
             font-weight: 400;
+            text-anchor: start;
         }
         
-        .node-status-icon {
-            font-size: 18px;
+        .node-status-badge {
+            fill: #667eea;
+            stroke: none;
+            rx: 8;
+            ry: 8;
+        }
+        
+        .node-status-text {
+            fill: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            text-anchor: middle;
+            text-transform: uppercase;
         }
         
         #zoom-controls {
             position: absolute;
-            top: 30px;
-            right: 30px;
+            top: 20px;
+            right: 20px;
             background: rgba(26, 31, 58, 0.95);
-            border-radius: 10px;
+            border-radius: 8px;
             padding: 10px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             border: 2px solid #667eea;
@@ -501,6 +505,7 @@ export class StructureThinking {
             cursor: pointer;
             font-weight: 600;
             transition: all 0.2s;
+            font-size: 0.9rem;
         }
         
         #zoom-controls button:hover {
@@ -531,30 +536,18 @@ export class StructureThinking {
     
     <script>
         let currentData = null;
-        let svg, g, zoom;
-        let currentZoom = 1;
+        let svg, g, zoomBehavior;
         
         function zoomIn() {
-            currentZoom *= 1.3;
-            applyZoom();
+            svg.transition().call(zoomBehavior.scaleBy, 1.3);
         }
         
         function zoomOut() {
-            currentZoom /= 1.3;
-            applyZoom();
+            svg.transition().call(zoomBehavior.scaleBy, 0.7);
         }
         
         function resetZoom() {
-            currentZoom = 1;
-            applyZoom();
-        }
-        
-        function applyZoom() {
-            const width = document.getElementById('graph').clientWidth;
-            const height = document.getElementById('graph').clientHeight;
-            g.transition()
-                .duration(300)
-                .attr('transform', \`translate(\${width/2}, \${height/2}) scale(\${currentZoom})\`);
+            svg.transition().call(zoomBehavior.transform, d3.zoomIdentity);
         }
         
         async function fetchData() {
@@ -564,129 +557,158 @@ export class StructureThinking {
             renderSidebar();
         }
         
+        function wrapText(text, maxWidth) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+            
+            words.forEach(word => {
+                const testLine = currentLine ? currentLine + ' ' + word : word;
+                if (testLine.length * 7 < maxWidth) {
+                    currentLine = testLine;
+                } else {
+                    if (currentLine) lines.push(currentLine);
+                    currentLine = word;
+                }
+            });
+            if (currentLine) lines.push(currentLine);
+            return lines;
+        }
+        
         function renderGraph() {
             if (!currentData || !currentData.rootNode) return;
             
-            const width = document.getElementById('graph').clientWidth - 100;
-            const height = document.getElementById('graph').clientHeight - 100;
+            const width = document.getElementById('graph').clientWidth - 40;
+            const height = document.getElementById('graph').clientHeight - 40;
             
             // Clear existing
             d3.select('#graph svg').remove();
             
             svg = d3.select('#graph')
                 .append('svg')
-                .attr('width', width + 100)
-                .attr('height', height + 100);
+                .attr('width', width)
+                .attr('height', height);
+            
+            // Zoom behavior
+            zoomBehavior = d3.zoom()
+                .scaleExtent([0.3, 3])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
+            
+            svg.call(zoomBehavior);
             
             g = svg.append('g');
             
             // Create hierarchy
-            const root = d3.hierarchy(currentData.rootNode, d => d.children);
+            const root = d3.hierarchy(currentData.rootNode);
             
-            // Create force simulation for network layout
-            const nodes = root.descendants();
-            const links = root.links();
+            // Tree layout (horizontal)
+            const treeLayout = d3.tree()
+                .size([height - 100, width - 300])
+                .separation((a, b) => (a.parent === b.parent ? 1 : 1.5));
             
-            // Force simulation
-            const simulation = d3.forceSimulation(nodes)
-                .force('link', d3.forceLink(links)
-                    .id(d => d.data.id)
-                    .distance(150)
-                    .strength(0.5))
-                .force('charge', d3.forceManyBody().strength(-800))
-                .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(80));
+            treeLayout(root);
             
-            // Draw links
+            // Draw curved links
             const link = g.selectAll('.link')
-                .data(links)
+                .data(root.links())
                 .enter()
-                .append('line')
-                .attr('class', 'link');
-            
-            // Draw nodes
-            const node = g.selectAll('.node-box')
-                .data(nodes)
-                .enter()
-                .append('g')
-                .attr('class', d => \`node-box \${d.data.status} \${d.depth === 0 ? 'root' : ''}\`)
-                .call(d3.drag()
-                    .on('start', dragstarted)
-                    .on('drag', dragged)
-                    .on('end', dragended));
-            
-            // Node rectangles (boxes)
-            node.append('rect')
-                .attr('width', 160)
-                .attr('height', 80)
-                .attr('x', -80)
-                .attr('y', -40);
-            
-            // Status icon
-            node.append('text')
-                .attr('class', 'node-status-icon')
-                .attr('y', -15)
-                .text(d => {
-                    if (d.data.status === 'completed') return '✓';
-                    if (d.data.status === 'in-progress') return '⟳';
-                    if (d.data.status === 'failed') return '✗';
-                    return '○';
+                .append('path')
+                .attr('class', 'link')
+                .attr('d', d => {
+                    const sourceX = d.source.y + 150;
+                    const sourceY = d.source.x + 50;
+                    const targetX = d.target.y + 150;
+                    const targetY = d.target.x + 50;
+                    
+                    return \`M\${sourceX},\${sourceY}
+                            C\${(sourceX + targetX) / 2},\${sourceY}
+                             \${(sourceX + targetX) / 2},\${targetY}
+                             \${targetX},\${targetY}\`;
                 });
             
-            // Node title
-            node.append('text')
-                .attr('class', 'node-title')
-                .attr('y', 5)
-                .text(d => {
-                    const title = d.data.title;
-                    return title.length > 18 ? title.substring(0, 18) + '...' : title;
-                })
-                .append('title')
-                .text(d => d.data.title);
+            // Draw nodes
+            const node = g.selectAll('.node-group')
+                .data(root.descendants())
+                .enter()
+                .append('g')
+                .attr('class', d => \`node-group \${d.data.status} \${d.depth === 0 ? 'root' : ''}\`)
+                .attr('transform', d => \`translate(\${d.y + 150}, \${d.x + 50})\`);
             
-            // Node description (truncated)
-            node.append('text')
-                .attr('class', 'node-desc')
-                .attr('y', 20)
-                .text(d => {
-                    const desc = d.data.description;
-                    return desc.length > 20 ? desc.substring(0, 20) + '...' : desc;
-                })
-                .append('title')
-                .text(d => d.data.description);
+            // Calculate box dimensions based on content
+            const boxWidth = 250;
+            const boxPadding = 15;
             
-            // Update positions on simulation tick
-            simulation.on('tick', () => {
-                link
-                    .attr('x1', d => d.source.x)
-                    .attr('y1', d => d.source.y)
-                    .attr('x2', d => d.target.x)
-                    .attr('y2', d => d.target.y);
+            // Add rectangles (boxes)
+            node.append('rect')
+                .attr('class', 'node-box')
+                .attr('x', 0)
+                .attr('y', -40)
+                .attr('width', boxWidth)
+                .attr('height', d => {
+                    const titleLines = wrapText(d.data.title, boxWidth - 30);
+                    const descLines = wrapText(d.data.description, boxWidth - 30);
+                    return 80 + (titleLines.length - 1) * 18 + (descLines.length - 1) * 16;
+                });
+            
+            // Add title (wrapped)
+            node.each(function(d) {
+                const nodeGroup = d3.select(this);
+                const titleLines = wrapText(d.data.title, boxWidth - 30);
                 
-                node.attr('transform', d => \`translate(\${d.x},\${d.y})\`);
+                titleLines.forEach((line, i) => {
+                    nodeGroup.append('text')
+                        .attr('class', 'node-title')
+                        .attr('x', boxPadding)
+                        .attr('y', -20 + i * 18)
+                        .text(line);
+                });
+                
+                // Add description (wrapped)
+                const descLines = wrapText(d.data.description, boxWidth - 30);
+                const descStartY = -20 + titleLines.length * 18 + 10;
+                
+                descLines.forEach((line, i) => {
+                    nodeGroup.append('text')
+                        .attr('class', 'node-desc')
+                        .attr('x', boxPadding)
+                        .attr('y', descStartY + i * 16)
+                        .text(line);
+                });
+                
+                // Add status badge
+                const badgeY = descStartY + descLines.length * 16 + 15;
+                
+                nodeGroup.append('rect')
+                    .attr('class', 'node-status-badge')
+                    .attr('x', boxPadding)
+                    .attr('y', badgeY - 12)
+                    .attr('width', 80)
+                    .attr('height', 18)
+                    .attr('fill', d => {
+                        if (d.data.status === 'completed') return '#10b981';
+                        if (d.data.status === 'in-progress') return '#3b82f6';
+                        if (d.data.status === 'failed') return '#ef4444';
+                        return '#fbbf24';
+                    });
+                
+                nodeGroup.append('text')
+                    .attr('class', 'node-status-text')
+                    .attr('x', boxPadding + 40)
+                    .attr('y', badgeY)
+                    .text(d.data.status);
             });
             
-            function dragstarted(event, d) {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
-                d.fx = d.x;
-                d.fy = d.y;
-            }
+            // Center the view
+            const bounds = g.node().getBBox();
+            const scale = 0.9 / Math.max(bounds.width / width, bounds.height / height);
+            const translateX = width / 2 - scale * (bounds.x + bounds.width / 2);
+            const translateY = height / 2 - scale * (bounds.y + bounds.height / 2);
             
-            function dragged(event, d) {
-                d.fx = event.x;
-                d.fy = event.y;
-            }
-            
-            function dragended(event, d) {
-                if (!event.active) simulation.alphaTarget(0);
-                d.fx = null;
-                d.fy = null;
-            }
-            
-            // Initial zoom
-            setTimeout(() => {
-                g.attr('transform', \`translate(\${width/2}, \${height/2}) scale(1)\`);
-            }, 100);
+            svg.call(zoomBehavior.transform, d3.zoomIdentity
+                .translate(translateX, translateY)
+                .scale(scale));
         }
         
         function renderSidebar() {
@@ -703,7 +725,7 @@ export class StructureThinking {
             
             info.innerHTML = \`
                 <div class="node-detail">
-                    <h3>🎯 Query</h3>
+                    <h3>🎯 Main Query</h3>
                     <p>\${currentData.query}</p>
                     <span class="status-badge status-planned">\${timestamp}</span>
                 </div>
