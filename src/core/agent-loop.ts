@@ -295,7 +295,7 @@ IMPORTANT:
         messages: this.sessionManager.getMessages(),
         tools: this.toolExecutor.getRegistry().getEssentialToolDefinitions(),
         temperature: 0.7,
-        maxTokens: 4096
+        maxTokens: 2048  // Reduced from 4096 to prevent response truncation
       };
 
       // Add guidance if iterations are high
@@ -363,7 +363,7 @@ IMPORTANT:
               }
             ],
             temperature: 0.7,
-            maxTokens: 4096
+            maxTokens: 2048
           };
           
           const finalResponse = await this.llmRouter.chat(finalRequest);
@@ -416,7 +416,7 @@ IMPORTANT:
                 }
               ],
               temperature: 0.7,
-              maxTokens: 4096
+              maxTokens: 2048
             };
             
             const noToolResponse = await this.llmRouter.chat(noToolRequest);

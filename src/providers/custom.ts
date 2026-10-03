@@ -49,6 +49,18 @@ export class CustomProvider {
       // Parse response
       return this.parseResponse(response.data);
     } catch (error: any) {
+      // Better error handling for JSON parsing issues
+      if (error.message && error.message.includes('JSON')) {
+        console.error('[LLM Error] JSON parsing failed - response might be truncated');
+        
+        // If JSON error and we sent tools, retry without tools
+        if (request.tools && request.tools.length > 0) {
+          console.log('[LLM Retry] Retrying without tools...');
+          const retryRequest = { ...request, tools: undefined };
+          return await this.chatWithoutTools(retryRequest);
+        }
+      }
+      
       if (error.response) {
         const errorData = error.response.data;
         const errorMsg = typeof errorData === 'string' ? errorData : JSON.stringify(errorData);
@@ -58,6 +70,25 @@ export class CustomProvider {
       } else {
         throw new Error(`LLM API Error: ${error.message}`);
       }
+    }
+  }
+  
+  /**
+   * Chat without tools (fallback)
+   */
+  private async chatWithoutTools(request: LLMRequest): Promise<LLMResponse> {
+    try {
+      const body: any = {
+        model: request.model || this.config.model,
+        messages: this.formatMessages(request.messages),
+        temperature: request.temperature || 0.7,
+        max_tokens: request.maxTokens || 2048  // Lower token limit for stability
+      };
+
+      const response = await this.client.post('/chat/completions', body);
+      return this.parseResponse(response.data);
+    } catch (error: any) {
+      throw new Error(`LLM Fallback Failed: ${error.message}`);
     }
   }
 
