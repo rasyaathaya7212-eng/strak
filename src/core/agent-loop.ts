@@ -174,92 +174,99 @@ Help users accomplish their tasks efficiently while explaining your thought proc
             ...this.sessionManager.getMessages(),
             {
               role: 'system',
-              content: `SMART STRUCTURE MODE ACTIVATED - PLANNING PHASE
+              content: `SMART STRUCTURE MODE - PLANNING PHASE
 
-You MUST create a detailed execution plan BEFORE using any tools. Break down the user's request into:
+You MUST create a SHORT execution plan (max 5 steps) BEFORE using any tools.
 
-1. **Main Goal** - What is the user asking for?
-2. **Sub-tasks** - Break the goal into 3-5 logical steps
-3. **Actions** - For each sub-task, list specific tools/actions needed
-4. **Expected Outcome** - What result you expect from each action
-
-Format your plan as a structured breakdown:
-
-PLAN:
+FORMAT (keep it concise):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📌 MAIN GOAL: [Brief description]
+📌 MAIN GOAL: [1 sentence description]
 
-🔹 STEP 1: [Sub-task name]
-   → Action: [Tool name + purpose]
-   → Expected: [What data/result]
+🔹 STEP 1: [Step name]
+   → Action: [tool name]
+   → Expected: [brief result]
 
-🔹 STEP 2: [Sub-task name]
-   → Action: [Tool name + purpose]
-   → Expected: [What data/result]
+🔹 STEP 2: [Step name]
+   → Action: [tool name]
+   → Expected: [brief result]
 
-🔹 STEP 3: [Sub-task name]
-   → Action: [Tool name + purpose]
-   → Expected: [What data/result]
-
+(max 5 steps)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Do NOT execute any tools yet. Just create the plan.`
+IMPORTANT:
+- Keep each step to 1-2 lines ONLY
+- Do NOT write long explanations
+- Do NOT execute any tools yet
+- Maximum 5 steps total
+- Be concise and direct`
             }
           ],
           temperature: 0.7,
-          maxTokens: 4096
+          maxTokens: 1500  // Limit tokens for planning
         };
         
-        const planResponse = await this.llmRouter.chat(planningRequest);
-        
-        // Display the plan
-        if (ui) {
-          ui.stopThinking();
-          ui.aiReasoning(planResponse.content);
-        }
-        
-        // Parse plan and create structure
-        const plan = structureThinking.createPlan(userInput);
-        
-        // Parse steps from AI response
-        const stepMatches = planResponse.content.match(/🔹 STEP \d+: (.+?)(?=🔹 STEP|━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━|$)/gs);
-        if (stepMatches) {
-          stepMatches.forEach((stepText, idx) => {
-            const titleMatch = stepText.match(/🔹 STEP \d+: (.+?)[\n\r]/);
-            const actionMatch = stepText.match(/→ Action: (.+?)[\n\r]/);
-            const expectedMatch = stepText.match(/→ Expected: (.+?)[\n\r]/);
-            
-            if (titleMatch) {
-              const title = titleMatch[1].trim();
-              const action = actionMatch ? actionMatch[1].trim() : '';
-              const expected = expectedMatch ? expectedMatch[1].trim() : '';
+        try {
+          const planResponse = await this.llmRouter.chat(planningRequest);
+          
+          // Display the plan
+          if (ui) {
+            ui.stopThinking();
+            ui.aiReasoning(planResponse.content);
+          }
+          
+          // Parse plan and create structure
+          const plan = structureThinking.createPlan(userInput);
+          
+          // Parse steps from AI response
+          const stepMatches = planResponse.content.match(/🔹 STEP \d+: (.+?)(?=🔹 STEP|━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━|$)/gs);
+          if (stepMatches) {
+            stepMatches.forEach((stepText, idx) => {
+              const titleMatch = stepText.match(/🔹 STEP \d+: (.+?)[\n\r]/);
+              const actionMatch = stepText.match(/→ Action: (.+?)[\n\r]/);
+              const expectedMatch = stepText.match(/→ Expected: (.+?)[\n\r]/);
               
-              structureThinking.addNode('root', {
-                type: 'subtask',
-                title: title,
-                description: `${action}\nExpected: ${expected}`,
-                status: 'planned'
-              });
-            }
+              if (titleMatch) {
+                const title = titleMatch[1].trim();
+                const action = actionMatch ? actionMatch[1].trim() : '';
+                const expected = expectedMatch ? expectedMatch[1].trim() : '';
+                
+                structureThinking.addNode('root', {
+                  type: 'subtask',
+                  title: title,
+                  description: `${action}\nExpected: ${expected}`,
+                  status: 'planned'
+                });
+              }
+            });
+          }
+          
+          // Display localhost URL
+          console.log('');
+          console.log(chalk.green('╔' + '═'.repeat(68) + '╗'));
+          console.log(chalk.green('║') + chalk.white.bold(' 🧠 Smart Structure Visualization') + ' '.repeat(34) + chalk.green('║'));
+          console.log(chalk.green('╠' + '═'.repeat(68) + '╣'));
+          console.log(chalk.green('║') + chalk.white(' Open in browser: ') + chalk.cyan.bold(`http://localhost:${structureThinking['port']}`) + ' '.repeat(68 - 18 - `http://localhost:${structureThinking['port']}`.length) + chalk.green('║'));
+          console.log(chalk.green('║') + ' '.repeat(68) + chalk.green('║'));
+          console.log(chalk.green('║') + chalk.gray(' The plan will update in real-time as AI executes tools') + ' '.repeat(13) + chalk.green('║'));
+          console.log(chalk.green('╚' + '═'.repeat(68) + '╝'));
+          console.log('');
+          
+          // Add plan to session
+          this.sessionManager.addMessage({
+            role: 'assistant',
+            content: planResponse.content
           });
+        } catch (error: any) {
+          // If planning fails, disable smart structure and continue normally
+          if (ui) {
+            ui.stopThinking();
+            ui.error(`Planning failed: ${error.message}`);
+            ui.info('Continuing without Smart Structure mode...');
+          }
+          
+          const { structureThinking } = require('../features/structure-thinking');
+          structureThinking.disable();
         }
-        
-        // Display localhost URL
-        console.log('');
-        console.log(chalk.green('╔' + '═'.repeat(68) + '╗'));
-        console.log(chalk.green('║') + chalk.white.bold(' 🧠 Smart Structure Visualization') + ' '.repeat(34) + chalk.green('║'));
-        console.log(chalk.green('╠' + '═'.repeat(68) + '╣'));
-        console.log(chalk.green('║') + chalk.white(' Open in browser: ') + chalk.cyan.bold(`http://localhost:${structureThinking['port']}`) + ' '.repeat(68 - 18 - `http://localhost:${structureThinking['port']}`.length) + chalk.green('║'));
-        console.log(chalk.green('║') + ' '.repeat(68) + chalk.green('║'));
-        console.log(chalk.green('║') + chalk.gray(' The plan will update in real-time as AI executes tools') + ' '.repeat(13) + chalk.green('║'));
-        console.log(chalk.green('╚' + '═'.repeat(68) + '╝'));
-        console.log('');
-        
-        // Add plan to session
-        this.sessionManager.addMessage({
-          role: 'assistant',
-          content: planResponse.content
-        });
         
         // Continue to execution phase...
       }
