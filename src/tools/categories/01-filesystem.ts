@@ -23,6 +23,11 @@ export const filesystemTools: Tool[] = [
       required: ['path']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.path || typeof args.path !== 'string' || args.path.trim() === '') {
+        return 'Error: Parameter "path" is required and must be a non-empty string. Example: {"path": "README.md"}';
+      }
+      
       try {
         const content = await fs.readFile(args.path, 'utf-8');
         const lines = content.split('\n');
@@ -54,6 +59,14 @@ export const filesystemTools: Tool[] = [
       required: ['path', 'content']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.path || typeof args.path !== 'string' || args.path.trim() === '') {
+        return 'Error: Parameter "path" is required and must be a non-empty string. Example: {"path": "file.txt", "content": "Hello"}';
+      }
+      if (!args.content || typeof args.content !== 'string') {
+        return 'Error: Parameter "content" is required and must be a string. Example: {"path": "file.txt", "content": "Hello"}';
+      }
+      
       try {
         await fs.ensureDir(path.dirname(args.path));
         await fs.writeFile(args.path, args.content, 'utf-8');
@@ -76,6 +89,11 @@ export const filesystemTools: Tool[] = [
       required: ['path']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.path || typeof args.path !== 'string' || args.path.trim() === '') {
+        return 'Error: Parameter "path" is required and must be a non-empty string. Example: {"path": "README.md"}';
+      }
+      
       try {
         return await fs.readFile(args.path, 'utf-8');
       } catch (error: any) {
@@ -97,6 +115,14 @@ export const filesystemTools: Tool[] = [
       required: ['path', 'content']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.path || typeof args.path !== 'string' || args.path.trim() === '') {
+        return 'Error: Parameter "path" is required and must be a non-empty string. Example: {"path": "file.txt", "content": "Hello"}';
+      }
+      if (!args.content || typeof args.content !== 'string') {
+        return 'Error: Parameter "content" is required and must be a string. Example: {"path": "file.txt", "content": "Hello"}';
+      }
+      
       try {
         await fs.writeFile(args.path, args.content, 'utf-8');
         return `File created: ${args.path}`;
@@ -118,6 +144,11 @@ export const filesystemTools: Tool[] = [
       required: ['path']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.path || typeof args.path !== 'string' || args.path.trim() === '') {
+        return 'Error: Parameter "path" is required and must be a non-empty string. Example: {"path": "./src"}';
+      }
+      
       try {
         const files = await fs.readdir(args.path);
         return files.join('\n');

@@ -19,6 +19,14 @@ export const memoryTools: Tool[] = [
       required: ['key', 'value']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.key || typeof args.key !== 'string' || args.key.trim() === '') {
+        return 'Error: Parameter "key" is required and must be a non-empty string. Example: {"key": "username", "value": "john"}';
+      }
+      if (!args.value || typeof args.value !== 'string' || args.value.trim() === '') {
+        return 'Error: Parameter "value" is required and must be a non-empty string. Example: {"key": "username", "value": "john"}';
+      }
+      
       try {
         const memoryPath = 'MEMORY.md';
         const content = await fs.readFile(memoryPath, 'utf-8').catch(() => '# Memory\n\n');
@@ -45,11 +53,15 @@ export const memoryTools: Tool[] = [
       try {
         const memoryPath = 'MEMORY.md';
         const content = await fs.readFile(memoryPath, 'utf-8');
-        if (args.key) {
+        
+        // If key is provided and valid, search for it
+        if (args && args.key && typeof args.key === 'string' && args.key.trim() !== '') {
           const regex = new RegExp(`## ${args.key}\\n([\\s\\S]*?)(?=\\n## |$)`);
           const match = content.match(regex);
           return match ? match[1].trim() : `Tidak ada memori dengan key: ${args.key}`;
         }
+        
+        // Return all content if no key provided
         return content;
       } catch (error: any) {
         return `Error membaca memori: ${error.message}`;

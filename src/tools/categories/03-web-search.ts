@@ -22,6 +22,11 @@ export const webTools: Tool[] = [
     },
     handler: async (args: any) => {
       try {
+        // Validate required parameter
+        if (!args || !args.query || typeof args.query !== 'string' || args.query.trim() === '') {
+          return 'Error: Parameter "query" is required and must be a non-empty string. Example: {"query": "Bitcoin price today"}';
+        }
+
         const maxResults = Math.min(args.max_results || 5, 50);
         const includeText = args.include_text || false;
 
@@ -30,7 +35,7 @@ export const webTools: Tool[] = [
         const LANGSEARCH_ENDPOINT = 'https://api.langsearch.com/v1/web-search';
 
         const requestBody: any = {
-          query: args.query,
+          query: args.query.trim(),
           count: maxResults
         };
 
@@ -108,6 +113,18 @@ export const webTools: Tool[] = [
       required: ['url']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.url || typeof args.url !== 'string' || args.url.trim() === '') {
+        return 'Error: Parameter "url" is required and must be a non-empty string. Example: {"url": "https://example.com"}';
+      }
+      
+      // Basic URL validation
+      try {
+        new URL(args.url);
+      } catch (urlError) {
+        return `Error: Invalid URL format. Must start with http:// or https://. Example: {"url": "https://example.com"}`;
+      }
+      
       try {
         const response = await axios.get(args.url, {
           timeout: 10000,

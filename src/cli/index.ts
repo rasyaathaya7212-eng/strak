@@ -13,11 +13,53 @@ export class CLI {
   private ui: UI;
   private gateway: Gateway;
   private config: any;
+  private smartStructureEnabled: boolean = false; // Smart Structure toggle
 
   constructor() {
     this.config = loadConfig();
     this.ui = new UI(this.config);
     this.gateway = new Gateway(this.config);
+    
+    // Setup keyboard listeners
+    this.setupKeyboardListeners();
+  }
+
+  /**
+   * Setup keyboard listeners for shortcuts
+   */
+  private setupKeyboardListeners(): void {
+    if (!process.stdin.isTTY) return;
+
+    const readline = require('readline');
+    readline.emitKeypressEvents(process.stdin);
+    if (process.stdin.setRawMode) {
+      process.stdin.setRawMode(true);
+    }
+
+    process.stdin.on('keypress', (str: any, key: any) => {
+      if (key && key.ctrl && key.name === 's') {
+        // Toggle Smart Structure mode
+        this.smartStructureEnabled = !this.smartStructureEnabled;
+        
+        if (this.smartStructureEnabled) {
+          console.log(chalk.green('\n  ⚡ SMART STRUCTURE ACTIVE - AI will plan before executing\n'));
+          
+          // Start visualization server
+          const { structureThinking } = require('../features/structure-thinking');
+          structureThinking.enable();
+          structureThinking.startServer().then((url: string) => {
+            console.log(chalk.cyan(`  [SMART STRUCTURE] Visualization server started at: ${url}`));
+            console.log(chalk.gray('  Open this URL in your browser to see AI planning visualization\n'));
+          });
+        } else {
+          console.log(chalk.yellow('\n  ⚡ SMART STRUCTURE DISABLED - Normal mode\n'));
+          
+          const { structureThinking } = require('../features/structure-thinking');
+          structureThinking.disable();
+          structureThinking.stopServer();
+        }
+      }
+    });
   }
 
   /**
@@ -32,6 +74,10 @@ export class CLI {
 
     // Display header
     this.ui.displayHeader();
+    
+    // Show Smart Structure hint
+    console.log(chalk.gray('  💡 Press ') + chalk.cyan.bold('Ctrl+S') + chalk.gray(' to toggle Smart Structure mode (AI planning visualization)'));
+    console.log('');
 
     // Main interaction loop
     await this.interactionLoop();
@@ -83,7 +129,7 @@ export class CLI {
         }
 
         // Process input through gateway
-        const response = await this.gateway.handleInput(input, this.ui);
+        const response = await this.gateway.handleInput(input, this.ui, this.smartStructureEnabled);
         
         // Display response
         this.ui.assistantMessage(response);

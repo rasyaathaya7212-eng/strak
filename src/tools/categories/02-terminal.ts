@@ -23,6 +23,11 @@ export const terminalTools: Tool[] = [
       required: ['command']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.command || typeof args.command !== 'string' || args.command.trim() === '') {
+        return 'Error: Parameter "command" is required and must be a non-empty string. Example: {"command": "ls -la"}';
+      }
+      
       try {
         const { stdout, stderr } = await execAsync(args.command, { 
           cwd: args.cwd || process.cwd(),
@@ -47,6 +52,11 @@ export const terminalTools: Tool[] = [
       required: ['command']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.command || typeof args.command !== 'string' || args.command.trim() === '') {
+        return 'Error: Parameter "command" is required and must be a non-empty string. Example: {"command": "npm --version"}';
+      }
+      
       try {
         const { stdout, stderr } = await execAsync(args.command, { timeout: 30000 });
         return stdout || stderr || 'Done';

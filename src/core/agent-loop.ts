@@ -8,6 +8,7 @@ import { LLMRouter } from './llm-router';
 import { ToolExecutor } from '../tools/executor';
 import { Config, Message, LLMRequest } from '../types';
 import { MCPInitializer } from '../mcp/initializer';
+import chalk from 'chalk';
 
 export class AgentLoop {
   private sessionManager: SessionManager;
@@ -112,7 +113,7 @@ export class AgentLoop {
   /**
    * Main agent loop
    */
-  async run(userInput: string, ui?: any): Promise<string> {
+  async run(userInput: string, ui?: any, smartStructureEnabled: boolean = false): Promise<string> {
     // Set UI if provided
     if (ui) {
       this.setUI(ui);
@@ -124,6 +125,86 @@ export class AgentLoop {
       role: 'user',
       content: userInput
     });
+
+    // Smart Structure Planning Phase
+    if (smartStructureEnabled) {
+      const { structureThinking } = require('../features/structure-thinking');
+      
+      // Reset plan for new query
+      structureThinking.resetPlan();
+      
+      // Create planning request
+      const planningRequest: LLMRequest = {
+        model: this.config.model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are STRAK AGENT in SMART STRUCTURE MODE. Your task is to PLAN before acting.
+
+CRITICAL RULES FOR PLANNING:
+1. Keep your plan SHORT - maximum 1500 tokens
+2. Structure your plan as a step-by-step breakdown
+3. Format your response as markdown with clear sections:
+   - PLAN: Main goal and approach
+   - STEPS: List each step with what tool(s) you'll use and why
+
+Example GOOD plan:
+## PLAN:
+Build a weather app that fetches real-time data from OpenWeather API
+
+## STEPS:
+1. web_search - Find OpenWeather API documentation and endpoints
+2. write_file - Create HTML structure with input and display
+3. write_file - Add JavaScript fetch logic
+4. bash - Test in browser
+
+Example BAD plan (TOO LONG):
+[hundreds of lines of detailed explanations, code snippets, etc.]
+
+NOW CREATE YOUR PLAN for: ${userInput}`
+          }
+        ],
+        temperature: 0.7,
+        maxTokens: 1500 // SHORT planning phase
+      };
+      
+      try {
+        if (ui) {
+          ui.info('🧠 Smart Structure: Creating execution plan...');
+        }
+        
+        const planResponse = await this.llmRouter.chat(planningRequest);
+        
+        // Create plan structure
+        structureThinking.createPlan(userInput);
+        
+        // Display the plan
+        if (ui && planResponse.content) {
+          ui.aiReasoning(planResponse.content);
+          
+          // Show Smart Structure visualization info
+          const serverUrl = 'http://localhost:3737';
+          console.log(chalk.cyan('╔' + '═'.repeat(68) + '╗'));
+          console.log(chalk.cyan('║') + chalk.yellow.bold(' 🧠 Smart Structure Visualization') + ' '.repeat(35) + chalk.cyan('║'));
+          console.log(chalk.cyan('╠' + '═'.repeat(68) + '╣'));
+          console.log(chalk.cyan('║') + chalk.white(' Open in browser: ') + chalk.green.underline(serverUrl) + ' '.repeat(32) + chalk.cyan('║'));
+          console.log(chalk.cyan('║') + ' '.repeat(68) + chalk.cyan('║'));
+          console.log(chalk.cyan('║') + chalk.gray(' The plan will update in real-time as AI executes tools') + ' '.repeat(13) + chalk.cyan('║'));
+          console.log(chalk.cyan('╚' + '═'.repeat(68) + '╝'));
+          console.log('');
+        }
+        
+        // Add plan to conversation context
+        this.sessionManager.addMessage({
+          role: 'assistant',
+          content: `[PLAN CREATED]\n${planResponse.content}\n\n[NOW EXECUTING PLAN]`
+        });
+      } catch (planError: any) {
+        if (ui) {
+          ui.warning(`Planning failed: ${planError.message}. Continuing without plan...`);
+        }
+      }
+    }
 
     // Add system message if first interaction
     const messages = this.sessionManager.getMessages();
@@ -322,16 +403,55 @@ Help users accomplish their tasks efficiently while explaining your thought proc
         ui.info(`Executing ${response.toolCalls.length} tool(s) in parallel...`);
       }
       
+      // Track tool execution for Smart Structure
+      const { structureThinking } = require('../features/structure-thinking');
+      const isSmartStructureActive = structureThinking.isEnabled() && structureThinking.getCurrentPlan();
+      
       // Execute all tools in parallel using Promise.all
       const toolPromises = response.toolCalls.map(async (toolCall) => {
         try {
+          // Update status to in-progress if Smart Structure is active
+          if (isSmartStructureActive) {
+            // Find node by tool name and update status
+            const plan = structureThinking.getCurrentPlan();
+            if (plan && plan.history) {
+              const node = plan.history.find((n: any) => n.title.includes(toolCall.name));
+              if (node) {
+                structureThinking.updateNodeStatus(node.id, 'in-progress');
+              }
+            }
+          }
+          
           const result = await this.toolExecutor.execute(toolCall.name, toolCall.args);
+          
+          // Update status to completed if Smart Structure is active
+          if (isSmartStructureActive) {
+            const plan = structureThinking.getCurrentPlan();
+            if (plan && plan.history) {
+              const node = plan.history.find((n: any) => n.title.includes(toolCall.name));
+              if (node) {
+                structureThinking.updateNodeStatus(node.id, 'completed');
+              }
+            }
+          }
+          
           return {
             role: 'tool' as const,
             toolCallId: toolCall.id,
             content: result
           };
         } catch (error: any) {
+          // Update status to failed if Smart Structure is active
+          if (isSmartStructureActive) {
+            const plan = structureThinking.getCurrentPlan();
+            if (plan && plan.history) {
+              const node = plan.history.find((n: any) => n.title.includes(toolCall.name));
+              if (node) {
+                structureThinking.updateNodeStatus(node.id, 'failed');
+              }
+            }
+          }
+          
           return {
             role: 'tool' as const,
             toolCallId: toolCall.id,

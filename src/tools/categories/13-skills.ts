@@ -29,6 +29,14 @@ export const skillsTools: Tool[] = [
       required: ['title', 'content']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.title || typeof args.title !== 'string' || args.title.trim() === '') {
+        return 'Error: Parameter "title" is required and must be a non-empty string. Example: {"title": "My Dashboard", "content": "<h1>Hello</h1>"}';
+      }
+      if (!args.content || typeof args.content !== 'string' || args.content.trim() === '') {
+        return 'Error: Parameter "content" is required and must be a non-empty string. Example: {"title": "My Dashboard", "content": "<h1>Hello</h1>"}';
+      }
+      
       const { title, content, filename = 'canvas_output.html' } = args;
       
       // Create full HTML page
@@ -122,6 +130,11 @@ export const skillsTools: Tool[] = [
       required: ['source']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.source || typeof args.source !== 'string' || args.source.trim() === '') {
+        return 'Error: Parameter "source" is required and must be a non-empty string. Example: {"source": "canvas_output.html", "format": "html"}';
+      }
+      
       const { source, format = 'html', output } = args;
       
       // Read source file
@@ -185,6 +198,11 @@ ${content}
       required: ['filepath']
     },
     handler: async (args: any) => {
+      // Validate required parameters
+      if (!args || !args.filepath || typeof args.filepath !== 'string' || args.filepath.trim() === '') {
+        return 'Error: Parameter "filepath" is required and must be a non-empty string. Example: {"filepath": "canvas_output.html"}';
+      }
+      
       const { filepath, metrics = ['size', 'elements', 'scripts', 'styles', 'images'] } = args;
       
       const filePath = path.join(process.cwd(), filepath);

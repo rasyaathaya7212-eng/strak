@@ -156,16 +156,39 @@ export class CustomProvider {
     // Parse tool calls if present - with proper string handling
     if (message.tool_calls && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
       try {
+        // Log tool_calls structure for debugging
+        console.log(`[Parse] Received ${message.tool_calls.length} tool call items`);
+        
+        // Check if first item looks valid
+        const firstItem = message.tool_calls[0];
+        if (firstItem && typeof firstItem === 'object') {
+          console.log(`[Parse] First item structure:`, JSON.stringify(firstItem).substring(0, 200));
+        }
+        
         response.toolCalls = [];
         
-        for (const tc of message.tool_calls) {
+        for (let i = 0; i < message.tool_calls.length; i++) {
+          const tc = message.tool_calls[i];
+          
           try {
-            // Validate tool call structure
-            if (!tc || !tc.function || !tc.function.name) {
-              console.error('[Parse] Invalid tool call structure, skipping');
+            // STRICT validation - must have proper structure
+            if (!tc || typeof tc !== 'object') {
+              continue; // Skip without logging (too many)
+            }
+            
+            if (!tc.function || typeof tc.function !== 'object') {
               continue;
             }
             
+            if (!tc.function.name || typeof tc.function.name !== 'string' || tc.function.name.length < 2) {
+              continue; // Name must be at least 2 chars
+            }
+            
+            if (!tc.id || typeof tc.id !== 'string') {
+              continue; // ID must be string
+            }
+            
+            // At this point, we have a valid tool call structure
             let parsedArgs;
             const rawArgs = tc.function.arguments;
             
@@ -192,22 +215,25 @@ export class CustomProvider {
               parsedArgs = {};
             }
             
-            // Only add valid tool calls
-            if (tc.id && tc.function.name) {
-              response.toolCalls.push({
-                id: tc.id,
-                name: tc.function.name,
-                args: parsedArgs
-              });
-            }
+            // Add valid tool call
+            response.toolCalls.push({
+              id: tc.id,
+              name: tc.function.name,
+              args: parsedArgs
+            });
+            
+            console.log(`[Parse] ✓ Valid tool call: ${tc.function.name}`);
           } catch (tcError: any) {
-            console.error(`[Parse] Error processing individual tool call:`, tcError.message);
-            // Skip this tool call but continue with others
+            // Skip silently
           }
         }
         
+        // Log summary
+        console.log(`[Parse] Successfully parsed ${response.toolCalls.length} valid tool calls from ${message.tool_calls.length} items`);
+        
         // If no valid tool calls were parsed, set to undefined
         if (response.toolCalls.length === 0) {
+          console.log('[Parse] No valid tool calls found, treating as regular response');
           response.toolCalls = undefined;
         }
       } catch (toolError: any) {
