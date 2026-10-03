@@ -55,6 +55,13 @@ export class StructureThinking {
   }
 
   /**
+   * Reset current plan (for new query)
+   */
+  resetPlan(): void {
+    this.currentPlan = null;
+  }
+
+  /**
    * Create a new thinking plan
    */
   createPlan(query: string): ThinkingPlan {

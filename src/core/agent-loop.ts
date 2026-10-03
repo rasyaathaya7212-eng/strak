@@ -120,6 +120,12 @@ export class AgentLoop {
       ui.startThinking('Processing your request');
     }
     
+    // Reset plan for new query if Smart Structure is enabled
+    if (ui && ui.isSmartStructureEnabled()) {
+      const { structureThinking } = require('../features/structure-thinking');
+      structureThinking.resetPlan();
+    }
+    
     // Add user message to session
     this.sessionManager.addMessage({
       role: 'user',
