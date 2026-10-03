@@ -9,18 +9,19 @@ import { UI } from './ui';
 import { Gateway } from '../gateway/router';
 import { loadConfig, validateConfig } from '../utils/config';
 import { structureThinking } from '../features/structure-thinking';
+import { ToolTips } from './tool-tips';
 
 export class CLI {
   private ui: UI;
   private gateway: Gateway;
   private config: any;
-  private toolTipInterval: NodeJS.Timeout | null = null;
-  private currentToolTipIndex: number = 0;
+  private toolTips: ToolTips;
 
   constructor() {
     this.config = loadConfig();
     this.ui = new UI(this.config);
     this.gateway = new Gateway(this.config);
+    this.toolTips = new ToolTips();
   }
 
   /**
@@ -35,6 +36,9 @@ export class CLI {
 
     // Display header
     this.ui.displayHeader();
+    
+    // Start rotating tool tips
+    this.toolTips.start();
 
     // Main interaction loop
     await this.interactionLoop();
@@ -56,6 +60,15 @@ export class CLI {
         ]);
 
         if (!input.trim()) continue;
+
+        // Handle smart structure toggle (if enabled via Ctrl+S)
+        if (this.ui.isSmartStructureEnabled() && !structureThinking.isEnabled()) {
+          // First time enabling - start server
+          structureThinking.enable();
+          const url = await structureThinking.startServer();
+          console.log(chalk.green(`\n[SMART STRUCTURE] Visualization server started at: ${chalk.cyan.bold(url)}`));
+          console.log(chalk.gray('Open this URL in your browser to see AI planning visualization\n'));
+        }
 
         // Handle details command
         if (input.toLowerCase() === 'details' || input.toLowerCase() === '.details') {
