@@ -36,6 +36,105 @@ export class AgentLoop {
   }
 
   /**
+   * Extract tool parameters from AI reasoning text (fallback when model doesn't provide args)
+   */
+  private extractToolParameters(toolName: string, reasoningText: string, userInput: string): any {
+    const params: any = {};
+    
+    // Common patterns for different tools
+    if (toolName === 'web_search') {
+      // Extract search query from reasoning or user input
+      // Pattern 1: Look for quoted text
+      const quotedMatch = reasoningText.match(/"([^"]+)"/);
+      if (quotedMatch) {
+        params.query = quotedMatch[1];
+      } else {
+        // Pattern 2: Extract main topic from user input
+        // Remove common command words
+        const cleanInput = userInput
+          .replace(/^(cari|search|find|lihat|check|cek)/i, '')
+          .replace(/^(tentang|about|untuk|for)/i, '')
+          .trim();
+        
+        if (cleanInput.length > 0 && cleanInput.length < 100) {
+          params.query = cleanInput;
+        } else {
+          // Pattern 3: Use user input as-is (last resort)
+          params.query = userInput.substring(0, 100);
+        }
+      }
+    } else if (toolName === 'web_fetch') {
+      // Extract URL
+      const urlMatch = reasoningText.match(/https?:\/\/[^\s]+/) || userInput.match(/https?:\/\/[^\s]+/);
+      if (urlMatch) {
+        params.url = urlMatch[0];
+      }
+    } else if (toolName === 'write_file' || toolName === 'write') {
+      // Extract path from reasoning
+      const pathMatch = reasoningText.match(/(?:file|path|to|di)\s+[`"]?([a-zA-Z0-9_\-./]+\.[a-z]+)[`"]?/i);
+      if (pathMatch) {
+        params.path = pathMatch[1];
+      } else {
+        // Try to extract from user input
+        const inputPathMatch = userInput.match(/(?:di|to|file|path)\s+([a-zA-Z0-9_\-./]+\.[a-z]+)/i);
+        if (inputPathMatch) {
+          params.path = inputPathMatch[1];
+        }
+      }
+      
+      // Content is harder to extract - use placeholder
+      if (params.path) {
+        params.content = ''; // Will be filled by AI in next iteration
+      }
+    } else if (toolName === 'read_file' || toolName === 'read') {
+      // Extract path
+      const pathMatch = reasoningText.match(/(?:file|path|baca|read)\s+[`"]?([a-zA-Z0-9_\-./]+\.[a-z]+)[`"]?/i);
+      if (pathMatch) {
+        params.path = pathMatch[1];
+      } else {
+        const inputPathMatch = userInput.match(/[a-zA-Z0-9_\-./]+\.[a-z]+/);
+        if (inputPathMatch) {
+          params.path = inputPathMatch[0];
+        }
+      }
+    } else if (toolName === 'terminal' || toolName === 'bash') {
+      // Extract command
+      const commandMatch = reasoningText.match(/`([^`]+)`/) || reasoningText.match(/command:?\s*(.+?)(?:\n|$)/i);
+      if (commandMatch) {
+        params.command = commandMatch[1].trim();
+      } else {
+        // Try common commands based on context
+        if (userInput.match(/list|ls|lihat/i)) {
+          params.command = 'ls -la';
+        } else if (userInput.match(/check|cek|test/i)) {
+          params.command = 'pwd';
+        }
+      }
+    } else if (toolName === 'ls') {
+      // Extract directory path
+      const pathMatch = reasoningText.match(/(?:directory|folder|direktori)\s+[`"]?([a-zA-Z0-9_\-./]+)[`"]?/i);
+      if (pathMatch) {
+        params.path = pathMatch[1];
+      } else {
+        params.path = '.'; // Default to current directory
+      }
+    } else if (toolName === 'memory_save') {
+      // Extract key and value
+      const keyMatch = reasoningText.match(/(?:key|kunci):\s*[`"]?([a-zA-Z0-9_\-]+)[`"]?/i);
+      const valueMatch = reasoningText.match(/(?:value|nilai):\s*[`"]?([^`"\n]+)[`"]?/i);
+      
+      if (keyMatch) params.key = keyMatch[1];
+      if (valueMatch) params.value = valueMatch[1];
+    } else if (toolName === 'memory_recall') {
+      // Extract key (optional)
+      const keyMatch = reasoningText.match(/(?:key|kunci):\s*[`"]?([a-zA-Z0-9_\-]+)[`"]?/i);
+      if (keyMatch) params.key = keyMatch[1];
+    }
+    
+    return params;
+  }
+
+  /**
    * Initialize MCP servers asynchronously
    */
   private async initializeMCP(): Promise<void> {
@@ -336,6 +435,32 @@ Help users accomplish their tasks efficiently while explaining your thought proc
           content: response.content
         });
         return response.content;
+      }
+
+      // 3.5. FALLBACK: Handle empty arguments by extracting from reasoning text
+      const hasEmptyArgs = response.toolCalls.some(tc => !tc.args || Object.keys(tc.args).length === 0);
+      if (hasEmptyArgs && response.content) {
+        if (ui) {
+          ui.info('[Fallback] Detecting missing tool parameters from AI reasoning...');
+        }
+        
+        // Try to extract parameters from reasoning text
+        for (const toolCall of response.toolCalls) {
+          if (!toolCall.args || Object.keys(toolCall.args).length === 0) {
+            toolCall.args = this.extractToolParameters(toolCall.name, response.content, userInput);
+            
+            if (Object.keys(toolCall.args).length > 0) {
+              console.log(`[Fallback] ✓ Extracted parameters for ${toolCall.name}:`, JSON.stringify(toolCall.args));
+            } else {
+              console.warn(`[Fallback] ⚠️  Could not extract parameters for ${toolCall.name}`);
+              
+              // Last resort: ask AI to provide parameters via text
+              if (ui) {
+                ui.info(`[Fallback] Tool ${toolCall.name} needs parameters but none could be extracted.`);
+              }
+            }
+          }
+        }
       }
 
       // Track tool calls for loop detection
