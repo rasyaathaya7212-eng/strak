@@ -37,10 +37,16 @@ export class CustomProvider {
         max_tokens: request.maxTokens || 4096
       };
 
-      // Add tools if provided
+      // Add tools if provided with better formatting
       if (request.tools && request.tools.length > 0) {
         body.tools = request.tools;
         body.tool_choice = 'auto';
+        
+        // Log tool definitions being sent (first 3 only)
+        console.log(`[API] Sending ${request.tools.length} tools to model`);
+        if (request.tools.length > 0 && request.tools.length <= 5) {
+          console.log('[API] Sample tool:', JSON.stringify(request.tools[0]).substring(0, 200));
+        }
       }
 
       // Make API call with custom response transformer to handle incomplete JSON
@@ -162,7 +168,12 @@ export class CustomProvider {
         // Check if first item looks valid
         const firstItem = message.tool_calls[0];
         if (firstItem && typeof firstItem === 'object') {
-          console.log(`[Parse] First item structure:`, JSON.stringify(firstItem).substring(0, 200));
+          console.log(`[Parse] First item:`, JSON.stringify(firstItem).substring(0, 300));
+        }
+        
+        // If we have many items but first few look invalid, might be malformed response
+        if (message.tool_calls.length > 20) {
+          console.warn(`[Parse] Warning: Received ${message.tool_calls.length} tool calls - this seems unusual`);
         }
         
         response.toolCalls = [];
@@ -192,12 +203,19 @@ export class CustomProvider {
             let parsedArgs;
             const rawArgs = tc.function.arguments;
             
+            // Log the raw arguments for debugging (first valid tool call only)
+            if (response.toolCalls.length === 0) {
+              console.log(`[Parse] Raw arguments for ${tc.function.name}:`, typeof rawArgs === 'string' ? `"${rawArgs}"` : JSON.stringify(rawArgs));
+            }
+            
             // Handle different argument formats
             if (typeof rawArgs === 'string') {
               // String - need to parse JSON
               const trimmed = rawArgs.trim();
               
               if (trimmed === '' || trimmed === 'undefined' || trimmed === 'null') {
+                // EMPTY ARGUMENTS - This is the problem!
+                console.warn(`[Parse] ⚠️  Tool ${tc.function.name} has EMPTY arguments - model not providing parameters!`);
                 parsedArgs = {};
               } else {
                 try {
@@ -212,17 +230,18 @@ export class CustomProvider {
               parsedArgs = rawArgs;
             } else {
               // Other types - use empty object
+              console.warn(`[Parse] Unexpected argument type for ${tc.function.name}: ${typeof rawArgs}`);
               parsedArgs = {};
             }
             
-            // Add valid tool call
+            // Add valid tool call (even with empty args, let tool validation handle it)
             response.toolCalls.push({
               id: tc.id,
               name: tc.function.name,
               args: parsedArgs
             });
             
-            console.log(`[Parse] ✓ Valid tool call: ${tc.function.name}`);
+            console.log(`[Parse] ✓ Valid tool call: ${tc.function.name} (args: ${Object.keys(parsedArgs).length} params)`);
           } catch (tcError: any) {
             // Skip silently
           }
@@ -235,6 +254,17 @@ export class CustomProvider {
         if (response.toolCalls.length === 0) {
           console.log('[Parse] No valid tool calls found, treating as regular response');
           response.toolCalls = undefined;
+        } else {
+          // Check if all tool calls have empty arguments
+          const emptyCount = response.toolCalls.filter(tc => Object.keys(tc.args).length === 0).length;
+          if (emptyCount === response.toolCalls.length) {
+            console.error('[Parse] ❌ CRITICAL: ALL tool calls have empty arguments!');
+            console.error('[Parse] This indicates the model is not generating tool parameters correctly.');
+            console.error('[Parse] Possible causes:');
+            console.error('[Parse]   1. Model does not support function calling properly');
+            console.error('[Parse]   2. Tool definitions format is incorrect');
+            console.error('[Parse]   3. Model needs different prompting for tool usage');
+          }
         }
       } catch (toolError: any) {
         console.error('[Parse] Failed to parse tool calls array:', toolError.message);
