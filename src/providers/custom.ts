@@ -153,37 +153,65 @@ export class CustomProvider {
       finishReason: choice.finish_reason || 'stop'
     };
 
-    // Parse tool calls if present - with enhanced error handling
+    // Parse tool calls if present - with proper string handling
     if (message.tool_calls && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
       try {
-        response.toolCalls = message.tool_calls.map((tc: any, index: number) => {
+        response.toolCalls = [];
+        
+        for (const tc of message.tool_calls) {
           try {
-            let parsedArgs;
-            
-            if (typeof tc.function.arguments === 'string') {
-              try {
-                parsedArgs = JSON.parse(tc.function.arguments);
-              } catch (argError) {
-                console.error(`[Parse] Failed to parse arguments for tool call ${index}:`, tc.function.arguments);
-                parsedArgs = {}; // Fallback to empty object
-              }
-            } else {
-              parsedArgs = tc.function.arguments || {};
+            // Validate tool call structure
+            if (!tc || !tc.function || !tc.function.name) {
+              console.error('[Parse] Invalid tool call structure, skipping');
+              continue;
             }
             
-            return {
-              id: tc.id,
-              name: tc.function.name,
-              args: parsedArgs
-            };
+            let parsedArgs;
+            const rawArgs = tc.function.arguments;
+            
+            // Handle different argument formats
+            if (typeof rawArgs === 'string') {
+              // String - need to parse JSON
+              const trimmed = rawArgs.trim();
+              
+              if (trimmed === '' || trimmed === 'undefined' || trimmed === 'null') {
+                parsedArgs = {};
+              } else {
+                try {
+                  parsedArgs = JSON.parse(trimmed);
+                } catch (jsonError) {
+                  console.error(`[Parse] Failed to parse arguments for tool ${tc.function.name}:`, trimmed.substring(0, 100));
+                  parsedArgs = {};
+                }
+              }
+            } else if (typeof rawArgs === 'object' && rawArgs !== null) {
+              // Already an object
+              parsedArgs = rawArgs;
+            } else {
+              // Other types - use empty object
+              parsedArgs = {};
+            }
+            
+            // Only add valid tool calls
+            if (tc.id && tc.function.name) {
+              response.toolCalls.push({
+                id: tc.id,
+                name: tc.function.name,
+                args: parsedArgs
+              });
+            }
           } catch (tcError: any) {
-            console.error(`[Parse] Error processing tool call ${index}:`, tcError.message);
-            return null;
+            console.error(`[Parse] Error processing individual tool call:`, tcError.message);
+            // Skip this tool call but continue with others
           }
-        }).filter((tc: any) => tc !== null); // Remove failed tool calls
+        }
+        
+        // If no valid tool calls were parsed, set to undefined
+        if (response.toolCalls.length === 0) {
+          response.toolCalls = undefined;
+        }
       } catch (toolError: any) {
-        console.error('[Parse] Failed to parse tool calls:', toolError.message);
-        // Don't fail completely, just skip tool calls
+        console.error('[Parse] Failed to parse tool calls array:', toolError.message);
         response.toolCalls = undefined;
       }
     }
