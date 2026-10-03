@@ -574,7 +574,7 @@ Be efficient and only use necessary tools. Explain your thought process.`
         messages: this.sessionManager.getMessages(),
         tools: useTextBasedTools ? undefined : this.toolExecutor.getRegistry().getEssentialToolDefinitions(), // Disable function calling
         temperature: 0.7,
-        maxTokens: 4096
+        maxTokens: 8000 // Increased from 4096 to prevent truncation
       };
 
       // Add guidance if iterations are high
@@ -634,10 +634,54 @@ Be efficient and only use necessary tools. Explain your thought process.`
       if (!response.toolCalls || response.toolCalls.length === 0) {
         // No tools requested, check if we have content
         if (!response.content || response.content.trim() === '') {
-          // Empty response - something went wrong, force a final answer
-          console.warn('[Agent] Received empty response from LLM');
+          // Empty response - something went wrong
+          console.error('[Agent] Received empty response from LLM at iteration', iterations);
+          console.error('[Agent] Response object:', JSON.stringify({
+            content: response.content,
+            finishReason: response.finishReason,
+            toolCalls: response.toolCalls
+          }));
           
-          if (iterations > 1) {
+          if (iterations === 1) {
+            // First iteration with empty response - LLM might not understand format
+            if (ui) {
+              ui.stopThinking();
+              ui.warning('Received empty response, trying again with simpler prompt...');
+            }
+            
+            // Try again with ultra-simple prompt
+            const retryRequest: LLMRequest = {
+              model: this.config.model,
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are a helpful AI assistant. Respond naturally to the user in their language.'
+                },
+                {
+                  role: 'user',
+                  content: userInput
+                }
+              ],
+              temperature: 0.7,
+              maxTokens: 4096,
+              tools: undefined // No tools for retry
+            };
+            
+            const retryResponse = await this.llmRouter.chat(retryRequest);
+            
+            if (ui) {
+              ui.stopThinking();
+            }
+            
+            const content = retryResponse.content || 'I apologize, but I was unable to process your request. Please try rephrasing your question.';
+            
+            this.sessionManager.addMessage({
+              role: 'assistant',
+              content: content
+            });
+            
+            return content;
+          } else if (iterations > 1) {
             // We've done some work, ask for summary
             if (ui) {
               ui.info('Requesting final summary from AI...');
@@ -649,7 +693,7 @@ Be efficient and only use necessary tools. Explain your thought process.`
                 ...this.sessionManager.getMessages(),
                 {
                   role: 'system',
-                  content: 'Please provide a brief summary or answer based on the work completed so far. Do NOT use any [TOOL] tags.'
+                  content: 'Please provide a brief summary or answer based on the work completed so far. Respond naturally without using [TOOL] tags.'
                 }
               ],
               temperature: 0.7,
@@ -663,18 +707,14 @@ Be efficient and only use necessary tools. Explain your thought process.`
               ui.stopThinking();
             }
             
+            const content = finalResponse.content || 'Task completed.';
+            
             this.sessionManager.addMessage({
               role: 'assistant',
-              content: finalResponse.content || 'Task completed.'
+              content: content
             });
             
-            return finalResponse.content || 'Task completed.';
-          } else {
-            // First iteration with empty response - return error
-            if (ui) {
-              ui.stopThinking();
-            }
-            return 'I apologize, but I was unable to process your request. Please try rephrasing your question.';
+            return content;
           }
         }
         
