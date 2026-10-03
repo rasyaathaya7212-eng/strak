@@ -105,14 +105,23 @@ export class AgentLoop {
       const params: any = {};
       const paramLines = paramsBlock.split('\n');
       
+      let currentKey: string | null = null;
+      let currentValue: string[] = [];
+      
       for (const line of paramLines) {
         const trimmed = line.trim();
         if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) continue;
         
         // Parse "key: value" format
-        const paramMatch = trimmed.match(/^(\w+):\s*(.+)$/);
+        const paramMatch = trimmed.match(/^(\w+):\s*(.*)$/);
         if (paramMatch) {
-          const key = paramMatch[1];
+          // Save previous key-value if exists
+          if (currentKey) {
+            params[currentKey] = currentValue.join('\n').trim();
+          }
+          
+          // Start new key-value
+          currentKey = paramMatch[1];
           let value = paramMatch[2].trim();
           
           // Remove quotes if present
@@ -121,8 +130,16 @@ export class AgentLoop {
             value = value.slice(1, -1);
           }
           
-          params[key] = value;
+          currentValue = [value];
+        } else if (currentKey) {
+          // Continuation of previous value (multiline)
+          currentValue.push(trimmed);
         }
+      }
+      
+      // Save last key-value
+      if (currentKey) {
+        params[currentKey] = currentValue.join('\n').trim();
       }
       
       toolCalls.push({
@@ -131,7 +148,7 @@ export class AgentLoop {
         args: params
       });
       
-      console.log(`[TextTools] Parsed ${toolName}:`, JSON.stringify(params));
+      console.log(`[TextTools] Parsed ${toolName}:`, JSON.stringify(params).substring(0, 150));
     }
     
     return toolCalls;
@@ -473,10 +490,12 @@ Search the web:
 query: latest Bitcoin price
 [/TOOL]
 
-Create a file:
+Create a file with multiline content:
 [TOOL: write_file]
-path: test.txt
-content: Hello World
+path: poem.txt
+content: Line 1 of poem
+Line 2 of poem
+Line 3 of poem
 [/TOOL]
 
 Read a file:
@@ -489,17 +508,31 @@ Run terminal command:
 command: ls -la
 [/TOOL]
 
-List directory:
-[TOOL: ls]
-path: ./src
+MULTILINE CONTENT:
+For parameters with multiple lines (like 'content'), just continue on next lines without adding another "content:" prefix.
+
+Example CORRECT:
+[TOOL: write_file]
+path: test.txt
+content: First line
+Second line
+Third line
+[/TOOL]
+
+Example WRONG:
+[TOOL: write_file]
+path: test.txt
+content: First line
+content: Second line  ❌ Don't repeat parameter name
 [/TOOL]
 
 RULES:
 1. Always use [TOOL: name] format to invoke tools
 2. Put each parameter on a new line with "param: value" format
-3. Close with [/TOOL]
-4. You can use multiple tools in one response
-5. Explain your reasoning BEFORE the tool invocations
+3. For multiline values, just continue on next lines
+4. Close with [/TOOL]
+5. You can use multiple tools in one response
+6. Explain your reasoning BEFORE the tool invocations
 
 AVAILABLE TOOLS CATEGORIES:
 - Filesystem: read_file, write_file, read, write, ls, etc.
@@ -558,7 +591,16 @@ Be efficient and only use necessary tools. Explain your thought process.`
         request.messages = [
           {
             role: 'system',
-            content: 'If you already have sufficient information to answer the user\'s question, provide your response now. Only use additional tools if the current information is incomplete or insufficient.'
+            content: 'If you already have sufficient information to answer the user\'s question, provide your response now WITHOUT using [TOOL] tags. Only use additional tools if the current information is incomplete or insufficient.'
+          },
+          ...request.messages
+        ];
+      } else if (iterations === 1 && !smartStructureEnabled) {
+        // First iteration without planning - encourage thinking before tools
+        request.messages = [
+          {
+            role: 'system',
+            content: 'Explain your reasoning briefly before using tools. After tools execute, provide your final answer without using more tools unless necessary.'
           },
           ...request.messages
         ];
@@ -582,12 +624,61 @@ Be efficient and only use necessary tools. Explain your thought process.`
           
           // Convert to standard tool call format
           response.toolCalls = parsedToolCalls;
+          
+          // Remove [TOOL] tags from content for display
+          response.content = response.content.replace(/\[TOOL:[\s\S]*?\[\/TOOL\]/g, '').trim();
         }
       }
 
       // 3. Check if LLM wants to use tools
       if (!response.toolCalls || response.toolCalls.length === 0) {
-        // No tools requested, task is complete
+        // No tools requested, check if we have content
+        if (!response.content || response.content.trim() === '') {
+          // Empty response - something went wrong, force a final answer
+          console.warn('[Agent] Received empty response from LLM');
+          
+          if (iterations > 1) {
+            // We've done some work, ask for summary
+            if (ui) {
+              ui.info('Requesting final summary from AI...');
+            }
+            
+            const finalRequest: LLMRequest = {
+              model: this.config.model,
+              messages: [
+                ...this.sessionManager.getMessages(),
+                {
+                  role: 'system',
+                  content: 'Please provide a brief summary or answer based on the work completed so far. Do NOT use any [TOOL] tags.'
+                }
+              ],
+              temperature: 0.7,
+              maxTokens: 4096,
+              tools: undefined
+            };
+            
+            const finalResponse = await this.llmRouter.chat(finalRequest);
+            
+            if (ui) {
+              ui.stopThinking();
+            }
+            
+            this.sessionManager.addMessage({
+              role: 'assistant',
+              content: finalResponse.content || 'Task completed.'
+            });
+            
+            return finalResponse.content || 'Task completed.';
+          } else {
+            // First iteration with empty response - return error
+            if (ui) {
+              ui.stopThinking();
+            }
+            return 'I apologize, but I was unable to process your request. Please try rephrasing your question.';
+          }
+        }
+        
+        // Task is complete with content
         if (ui) {
           ui.stopThinking();
           if (iterations > warningThreshold) {
@@ -632,32 +723,37 @@ Be efficient and only use necessary tools. Explain your thought process.`
       const currentTools = response.toolCalls.map(tc => tc.name);
       if (JSON.stringify(currentTools) === currentToolCallsStr) {
         repeatCount++;
-        if (repeatCount > 3) {
-          // Same tools called 3+ times in a row - force conclusion
+        console.warn(`[Loop Detection] Repeated same tools ${repeatCount} times: ${currentTools.join(', ')}`);
+        
+        if (repeatCount >= 2) {
+          // Same tools called 2+ times in a row - STOP and report issue
           if (ui) {
             ui.stopThinking();
-            ui.info('Finalizing response...');
+            ui.error('Agent stuck in loop - stopping execution');
           }
           
-          const finalRequest: LLMRequest = {
-            model: this.config.model,
-            messages: [
-              ...this.sessionManager.getMessages(),
-              {
-                role: 'system',
-                content: 'Please provide a final answer now based on the information you have gathered. Do NOT use any more tools.'
-              }
-            ],
-            temperature: 0.7,
-            maxTokens: 4096
-          };
+          const errorMessage = `I apologize, but I encountered a technical issue and got stuck in a loop while processing your request.
+
+**Issue Details:**
+- Repeated tools: ${currentTools.join(', ')}
+- Iterations: ${repeatCount + 1} times
+
+This appears to be a bug in the system. Please report this issue to:
+📧 **ambatukam.bleww@gmail.com**
+
+Include in your report:
+- Your query: "${userInput}"
+- Tools that looped: ${currentTools.join(', ')}
+- Timestamp: ${new Date().toISOString()}
+
+Thank you for your patience!`;
           
-          const finalResponse = await this.llmRouter.chat(finalRequest);
           this.sessionManager.addMessage({
             role: 'assistant',
-            content: finalResponse.content
+            content: errorMessage
           });
-          return finalResponse.content;
+          
+          return errorMessage;
         }
       } else {
         repeatCount = 0;
