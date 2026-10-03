@@ -61,13 +61,16 @@ export class CLI {
 
         if (!input.trim()) continue;
 
-        // Handle smart structure toggle (if enabled via Ctrl+S)
+        // Check if smart structure was just enabled and start server
         if (this.ui.isSmartStructureEnabled() && !structureThinking.isEnabled()) {
-          // First time enabling - start server
           structureThinking.enable();
-          const url = await structureThinking.startServer();
-          console.log(chalk.green(`\n[SMART STRUCTURE] Visualization server started at: ${chalk.cyan.bold(url)}`));
-          console.log(chalk.gray('Open this URL in your browser to see AI planning visualization\n'));
+          try {
+            const url = await structureThinking.startServer();
+            console.log(chalk.green(`\n[SMART STRUCTURE] Visualization server started at: ${chalk.cyan.bold(url)}`));
+            console.log(chalk.gray('Open this URL in your browser to see AI planning visualization\n'));
+          } catch (error: any) {
+            console.log(chalk.red(`\n[ERROR] Failed to start visualization server: ${error.message}\n`));
+          }
         }
 
         // Handle details command
