@@ -601,6 +601,47 @@ strak
 
 ## 📝 Changelog
 
+### v1.0.4 (October 4, 2026)
+**DSML Format Auto-Conversion - DeepSeek Compatibility**
+
+**CRITICAL FIX - Accept & Convert Instead of Reject:**
+- ✅ DSML format (`<｜｜DSML｜｜>`) now AUTO-CONVERTED to standard format
+- ✅ No more rejection errors - seamless conversion
+- ✅ Full DeepSeek model compatibility
+- ✅ Parser supports both formats: [TOOL:] and <｜｜DSML｜｜>
+
+**How It Works:**
+```
+AI sends (DeepSeek's native format):
+<｜｜DSML｜｜ invoke name="write_file">
+<｜｜DSML｜｜ parameter>{"path":"test.txt","content":"Hello"}</｜｜DSML｜｜ parameter>
+
+Parser AUTO-CONVERTS to:
+[TOOL: write_file]
+path: test.txt
+content: Hello
+[/TOOL]
+
+Then executes normally!
+```
+
+**Technical:**
+- New `parseDSMLToolCalls()` method extracts tool name + JSON args
+- Removed rejection logic that caused errors
+- Parser tries DSML first, then [TOOL:] format
+- Works with ANY DeepSeek model without prompt engineering
+
+**Problem Solved:**
+- ❌ Before: AI keeps using DSML → Rejected → Error → Retry → Error loop
+- ✅ Now: AI uses DSML → Auto-converted → Executes successfully
+- ❌ Before: "Format not supported" errors every request
+- ✅ Now: Transparent conversion, user doesn't see any errors
+
+**Compatibility:**
+- ✅ DeepSeek models (native DSML format)
+- ✅ Other models with [TOOL:] format
+- ✅ Mixed format in same response (both parsed correctly)
+
 ### v1.0.3 (October 4, 2026)
 **2-Step Tool Discovery System**
 

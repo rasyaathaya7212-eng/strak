@@ -86,10 +86,53 @@ export class AgentLoop {
   }
 
   /**
+   * Parse DSML format (DeepSeek's internal format) and convert to standard format
+   * Format: <｜｜DSML｜｜ invoke name="tool_name"><｜｜DSML｜｜ parameter...>{"key":"value"}</｜｜DSML｜｜ parameter>
+   */
+  private parseDSMLToolCalls(content: string): any[] {
+    const toolCalls: any[] = [];
+    
+    // Pattern for DSML invoke blocks
+    const dsmlPattern = /<｜｜DSML｜｜\s*invoke\s+name="(\w+)"[\s\S]*?<｜｜DSML｜｜\s*parameter[\s\S]*?>([\s\S]*?)<\/｜｜DSML｜｜\s*parameter>/g;
+    let match;
+    let callIndex = 0;
+    
+    while ((match = dsmlPattern.exec(content)) !== null) {
+      const toolName = match[1];
+      const argsJson = match[2].trim();
+      
+      try {
+        // Parse JSON arguments
+        const args = JSON.parse(argsJson);
+        
+        toolCalls.push({
+          id: `dsml_call_${callIndex++}`,
+          name: toolName,
+          args: args
+        });
+        
+        console.log(`[DSML Parser] Converted ${toolName}:`, JSON.stringify(args).substring(0, 150));
+      } catch (e) {
+        console.warn(`[DSML Parser] Failed to parse JSON for ${toolName}:`, argsJson.substring(0, 100));
+      }
+    }
+    
+    return toolCalls;
+  }
+
+  /**
    * Parse text-based tool invocations from AI response
    * Format: [TOOL: tool_name]\nparam: value\n[/TOOL]
    */
   private parseTextBasedToolCalls(content: string): any[] {
+    // First try to parse DSML format (DeepSeek's native format)
+    const dsmlCalls = this.parseDSMLToolCalls(content);
+    if (dsmlCalls.length > 0) {
+      console.log(`[Parser] Found ${dsmlCalls.length} DSML format tool calls (converted automatically)`);
+      return dsmlCalls;
+    }
+    
+    // Then try standard [TOOL:] format
     const toolCalls: any[] = [];
     
     // Pattern: [TOOL: tool_name]...params...[/TOOL]
@@ -749,113 +792,12 @@ READY! Explore categories then use tools!`;
       
       const response = await this.llmRouter.chat(request);
 
-      // 3. Parse text-based tool invocations if function calling disabled
+      // 3. Parse text-based tool invocations (supports both [TOOL:] and DSML formats)
       let parsedToolCalls: any[] = [];
       
       if (useTextBasedTools && response.content) {
-        // CRITICAL: Detect WRONG FORMAT (but exclude content inside [TOOL] tags)
-        // Remove all [TOOL]...[/TOOL] blocks first, then check for forbidden formats
-        const contentWithoutTools = response.content.replace(/\[TOOL:[\s\S]*?\[\/TOOL\]/g, '');
-        
-        const hasWrongFormat = contentWithoutTools.includes('<｜｜DSML｜｜') || 
-                               contentWithoutTools.includes('function_calls>') ||
-                               contentWithoutTools.includes('invoke name="') ||
-                               contentWithoutTools.includes('<function_calls>');
-        
-        if (hasWrongFormat) {
-          console.error('[TextTools] ❌ DETECTED WRONG FORMAT! AI using forbidden format OUTSIDE tool content.');
-          console.error('[TextTools] Wrong format found in:', contentWithoutTools.substring(0, 300));
-          
-          if (ui) {
-            ui.info('[Warning] AI using wrong format. Forcing correction...');
-          }
-          
-          // Force retry with ULTRA-STRICT prompt
-          const strictRequest: LLMRequest = {
-            model: this.config.model,
-            messages: [
-              ...this.sessionManager.getMessages(),
-              {
-                role: 'system',
-                content: `❌ ERROR! You used the WRONG format!
-
-YOU MUST USE THIS EXACT FORMAT (nothing else!):
-
-[TOOL: tool_name]
-param: value
-[/TOOL]
-
-EXAMPLE - Read file:
-[TOOL: read_file]
-path: hast.html
-[/TOOL]
-
-EXAMPLE - Write file:
-[TOOL: write_file]
-path: test.txt
-content: Hello World
-[/TOOL]
-
-DO NOT USE:
-✗ <｜｜DSML｜｜>
-✗ <invoke>
-✗ <function_calls>
-✗ <function_calls>
-✗ {function: {name: "tool"}}
-
-ONLY USE:
-✓ [TOOL: name]
-param: value
-[/TOOL]
-
-NOW TRY AGAIN WITH CORRECT FORMAT!`
-              }
-            ],
-            temperature: 0.3, // Lower temperature for more consistent formatting
-            maxTokens: 8000,
-            tools: undefined
-          };
-          
-          const retryResponse = await this.llmRouter.chat(strictRequest);
-          
-          // Check retry response
-          if (retryResponse.content) {
-            const contentWithoutToolsRetry = retryResponse.content.replace(/\[TOOL:[\s\S]*?\[\/TOOL\]/g, '');
-            const stillWrong = contentWithoutToolsRetry.includes('<｜｜DSML｜｜') || 
-                              contentWithoutToolsRetry.includes('function_calls>') ||
-                              contentWithoutToolsRetry.includes('invoke name="') ||
-                              contentWithoutToolsRetry.includes('<function_calls>');
-            
-            if (stillWrong) {
-              // AI still using wrong format after correction - show error to user
-              if (ui) {
-                ui.stopThinking();
-                ui.error('⚠️  AI repeatedly using wrong format - model may not support text-based tools');
-              }
-              
-              const errorMsg = `I apologize, but I'm having difficulty using the correct tool format.
-
-This may be a compatibility issue with the model. Please try:
-1. Using a different model (e.g., Claude, GPT-4)
-2. Simplifying your request
-3. Reporting this to: ambatukam.bleww@gmail.com
-
-Model: ${this.config.model}
-Format error: Model keeps using forbidden XML/DSML format instead of [TOOL:] format`;
-              
-              this.sessionManager.addMessage({
-                role: 'assistant',
-                content: errorMsg
-              });
-              
-              return errorMsg;
-            } else {
-              // Retry succeeded, use new response
-              response.content = retryResponse.content;
-            }
-          }
-        }
-        
+        // Parse both formats: [TOOL:] and <｜｜DSML｜｜>
+        // DSML format is automatically converted to standard format
         parsedToolCalls = this.parseTextBasedToolCalls(response.content);
         
         if (parsedToolCalls.length > 0) {
