@@ -601,6 +601,77 @@ strak
 
 ## 📝 Changelog
 
+### v1.0.3 (October 4, 2026)
+**2-Step Tool Discovery System**
+
+**MAJOR CHANGE - Tool System Redesign:**
+- ✅ AI now uses 2-step process: Explore category → Use tool
+- ✅ Tool `list_category_tools` shows ALL tools with full parameters
+- ✅ No more false advertising - AI knows which tools work vs stubs
+- ✅ Beautiful formatted output with icons and clear parameter info
+
+**How It Works:**
+1. AI explores category: `[TOOL: list_category_tools]\ncategory: 01-filesystem\n[/TOOL]`
+2. System shows all tools with parameters (working + stubs marked)
+3. AI uses specific tool: `[TOOL: delete_file]\npath: old.txt\n[/TOOL]`
+
+**Improvements:**
+- 🎨 Beautiful output format with boxes, icons, and clear sections
+- 📋 Shows parameter types, required/optional status, descriptions
+- ⚠️  Clearly marks stub tools vs implemented tools
+- 💡 Shows usage example at the end of each category list
+
+**Problem Solved:**
+- ❌ Before: AI thought all 200+ tools work (they don't - most are stubs)
+- ✅ Now: AI discovers what's available, sees parameters, knows which work
+- ❌ Before: "200+ tools" was just a number with no real access
+- ✅ Now: AI can explore ANY category and see EXACTLY what's available
+
+**Example Output:**
+```
+╔═══════════════════════════════════════════════════════════╗
+║ 📦 TOOLS IN 01-FILESYSTEM                                  ║
+║ 25 tools available                                         ║
+╚═══════════════════════════════════════════════════════════╝
+
+1. 🔧 read_file
+   📝 Baca file dengan nomor baris
+   📋 Parameters:
+      • path (string) [REQUIRED]
+        → Path file yang akan dibaca
+      • start_line (number) [optional]
+      • end_line (number) [optional]
+
+2. 🔧 delete_file
+   📝 Hapus file dengan konfirmasi
+   ⚠️  No parameters defined (stub tool)
+```
+
+### v1.0.2 (October 4, 2026)
+**Complete Code Fix & Function Calling Disabled**
+
+**CRITICAL FIXES:**
+- ✅ COMPLETELY disabled function calling - DeepSeek doesn't support it
+- ✅ Force text-based tools ONLY with [TOOL:] format
+- ✅ AI now writes COMPLETE, FUNCTIONAL code (not just skeleton!)
+- ✅ Fixed detection of wrong format (only check outside tool blocks)
+
+**Major Changes:**
+- 🔧 `tools: undefined` ALWAYS - never send function definitions to API
+- 🔧 System prompt emphasizes "WRITE COMPLETE CODE"
+- 🔧 Added example of complete working game (not just comments)
+- 🔧 Clear instruction: NO placeholders, NO "// add code here"
+
+**Problem Solved:**
+- ❌ Before: AI uses `<｜｜DSML｜｜>` format → Now: ALWAYS rejected
+- ❌ Before: AI writes skeleton code → Now: COMPLETE functional code
+- ❌ Before: Detection too sensitive → Now: Only check outside [TOOL] blocks
+
+**Technical:**
+- NEVER_SEND_TOOLS_TO_API flag added
+- tools: undefined in ALL requests
+- DeepSeek model incompatibility fully handled
+
 ### v1.0.1 (October 4, 2026)
 **Truncation Fix & Improved Loop Detection**
 

@@ -466,194 +466,213 @@ NOW CREATE BRIEF MIND MAP for: ${userInput}`
     if (messages.length === 1 || (messages.length === 2 && smartStructureEnabled)) {
       // If Smart Structure enabled and we just added user message, add clear instruction
       const systemContent = smartStructureEnabled 
-        ? `You are STRAK AGENT. Execute the plan that was created.
+        ? `You are STRAK AGENT with 200+ TOOLS across 15 categories.
 
 ═══════════════════════════════════════════════
-TOOL FORMAT - THIS IS THE ONLY WAY TO USE TOOLS:
+HOW TO DISCOVER & USE TOOLS (2-STEP PROCESS):
 ═══════════════════════════════════════════════
+
+STEP 1: Explore category to see available tools
+STEP 2: Use the specific tool you need
+
+═══════════════════════════════════════════════
+STEP 1 - EXPLORE TOOLS BY CATEGORY:
+═══════════════════════════════════════════════
+
+Use this tool to see what's available in a category:
+
+[TOOL: list_category_tools]
+category: 01-filesystem
+[/TOOL]
+
+This will show you ALL tools in that category with their parameters!
+
+AVAILABLE CATEGORIES:
+- 01-filesystem (file operations)
+- 02-terminal (shell commands)
+- 03-web-search (web & HTTP)
+- 04-text (text processing)
+- 05-agent (agent control)
+- 06-memory (memory & context)
+- 07-git (version control)
+- 08-media (images, video, PDF)
+- 09-automation (scheduling, batch)
+- 10-communication (email, messaging)
+- 11-data (JSON, CSV, encryption)
+- 12-integration (APIs, webhooks)
+- 13-skills (plugins, canvas)
+- 14-device (clipboard, screen)
+- 15-mcp (MCP servers)
+
+═══════════════════════════════════════════════
+STEP 2 - USE SPECIFIC TOOL:
+═══════════════════════════════════════════════
+
+After exploring, use any tool with this format:
 
 [TOOL: tool_name]
-parameter_name: parameter_value
+parameter: value
 [/TOOL]
 
-THAT'S IT! Just write [TOOL: name], then parameters, then [/TOOL]
+EXAMPLE WORKFLOW:
+
+User asks: "Delete file old.txt"
+
+Step 1 - You think: "Delete is filesystem operation, let me check category 01"
+[TOOL: list_category_tools]
+category: 01-filesystem
+[/TOOL]
+
+Step 2 - You see delete_file in the list with its parameters, then use it:
+[TOOL: delete_file]
+path: old.txt
+[/TOOL]
 
 ═══════════════════════════════════════════════
-EXAMPLES:
+CRITICAL - WRITE COMPLETE CODE:
 ═══════════════════════════════════════════════
 
-Example 1 - Create a file:
+When creating HTML/code:
+✓ Write COMPLETE, FUNCTIONAL code
+✗ NO "// add code here" comments
+
+START EXECUTING THE PLAN!`
+        : `You are STRAK AGENT with 200+ TOOLS across 15 categories.
+
+═══════════════════════════════════════════════
+HOW TO DISCOVER & USE TOOLS (2-STEP PROCESS):
+═══════════════════════════════════════════════
+
+Most tools are available but you need to discover them first!
+
+STEP 1: Explore category → See available tools with parameters
+STEP 2: Use the specific tool you need
+
+═══════════════════════════════════════════════
+STEP 1 - EXPLORE TOOLS BY CATEGORY:
+═══════════════════════════════════════════════
+
+Use this special tool to discover what's available:
+
+[TOOL: list_category_tools]
+category: 01-filesystem
+[/TOOL]
+
+This shows ALL tools in that category with full parameter details!
+
+AVAILABLE CATEGORIES:
+- 01-filesystem → file operations (read, write, delete, copy, move, etc.)
+- 02-terminal → shell commands (bash, exec, process management)
+- 03-web-search → web & HTTP (search, fetch, download, scrape)
+- 04-text → text processing (grep, sed, regex, diff)
+- 05-agent → agent control (spawn, delegate, tasks)
+- 06-memory → memory & context (save, recall, search)
+- 07-git → version control (commit, push, pull, branch)
+- 08-media → images, video, PDF (resize, convert, OCR)
+- 09-automation → scheduling (cron, timers, batch)
+- 10-communication → messaging (email, Slack, Discord)
+- 11-data → data processing (JSON, CSV, encryption)
+- 12-integration → APIs (OAuth, webhooks, integrations)
+- 13-skills → plugins (canvas, macros, custom tools)
+- 14-device → system (clipboard, screen, keyboard)
+- 15-mcp → MCP server tools
+
+═══════════════════════════════════════════════
+STEP 2 - USE SPECIFIC TOOL:
+═══════════════════════════════════════════════
+
+After exploring category, use the tool:
+
+[TOOL: tool_name]
+parameter: value
+[/TOOL]
+
+═══════════════════════════════════════════════
+EXAMPLE WORKFLOW:
+═══════════════════════════════════════════════
+
+User: "Delete old.txt file"
+
+Your process:
+1. Think: "Delete = filesystem operation = category 01"
+2. Explore category:
+   [TOOL: list_category_tools]
+   category: 01-filesystem
+   [/TOOL]
+   
+3. See list includes: delete_file (path: string)
+4. Use it:
+   [TOOL: delete_file]
+   path: old.txt
+   [/TOOL]
+
+═══════════════════════════════════════════════
+User: "Send email to john@example.com"
+
+Your process:
+1. Think: "Email = communication = category 10"
+2. Explore:
+   [TOOL: list_category_tools]
+   category: 10-communication
+   [/TOOL]
+   
+3. See: email_send (to, subject, body)
+4. Use it:
+   [TOOL: email_send]
+   to: john@example.com
+   subject: Hello
+   body: Test message
+   [/TOOL]
+
+═══════════════════════════════════════════════
+COMMONLY USED TOOLS (no need to explore):
+═══════════════════════════════════════════════
+
+These are already available:
+
 [TOOL: write_file]
-path: game.html
-content: <!DOCTYPE html>
-<html>
-<body>Hello World</body>
-</html>
+path: file.txt
+content: Complete code here
 [/TOOL]
 
-Example 2 - Read a file:
 [TOOL: read_file]
-path: config.json
+path: file.txt
 [/TOOL]
 
-Example 3 - Search the web:
-[TOOL: web_search]
-query: latest news about AI
+[TOOL: ls]
+path: ./directory
 [/TOOL]
 
-Example 4 - Run command:
 [TOOL: terminal]
 command: ls -la
 [/TOOL]
 
-═══════════════════════════════════════════════
-FOR LARGE FILES - SPLIT THEM:
-═══════════════════════════════════════════════
-
-Don't create huge files. Split into multiple small files:
-
-[TOOL: write_file]
-path: index.html
-content: <!DOCTYPE html>
-<html>
-<head>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<script src="script.js"></script>
-</body>
-</html>
-[/TOOL]
-
-[TOOL: write_file]
-path: style.css
-content: body { margin: 0; }
-[/TOOL]
-
-[TOOL: write_file]
-path: script.js
-content: console.log('Hello');
-[/TOOL]
-
-NOW START EXECUTING!`
-        : `You are STRAK AGENT with 200+ tools available.
-
-═══════════════════════════════════════════════
-TOOL FORMAT - THIS IS THE ONLY WAY TO USE TOOLS:
-═══════════════════════════════════════════════
-
-[TOOL: tool_name]
-parameter_name: parameter_value
-[/TOOL]
-
-THAT'S IT! Just write [TOOL: name], then parameters, then [/TOOL]
-
-═══════════════════════════════════════════════
-EXAMPLES OF CORRECT FORMAT:
-═══════════════════════════════════════════════
-
-1. CREATE FILE:
-[TOOL: write_file]
-path: myfile.html
-content: <!DOCTYPE html>
-<html>
-<head><title>Test</title></head>
-<body><h1>Hello</h1></body>
-</html>
-[/TOOL]
-
-2. READ FILE:
-[TOOL: read_file]
-path: myfile.html
-[/TOOL]
-
-3. SEARCH WEB:
 [TOOL: web_search]
-query: what is the weather today
+query: search terms
 [/TOOL]
 
-4. GET URL CONTENT:
 [TOOL: web_fetch]
 url: https://example.com
 [/TOOL]
 
-5. RUN COMMAND:
-[TOOL: terminal]
-command: pwd
+[TOOL: memory_save]
+key: mykey
+value: myvalue
 [/TOOL]
 
-6. LIST FILES:
-[TOOL: ls]
-path: .
-[/TOOL]
-
-═══════════════════════════════════════════════
-MULTILINE CONTENT (like HTML/code):
-═══════════════════════════════════════════════
-
-Just keep writing after "content:", don't repeat "content:" again:
-
-[TOOL: write_file]
-path: game.html
-content: <!DOCTYPE html>
-<html>
-<head>
-<title>Game</title>
-<style>
-body { background: black; }
-canvas { display: block; }
-</style>
-</head>
-<body>
-<canvas id="game"></canvas>
-<script>
-const canvas = document.getElementById('game');
-// more code here...
-</script>
-</body>
-</html>
+[TOOL: memory_recall]
+key: mykey
 [/TOOL]
 
 ═══════════════════════════════════════════════
-IMPORTANT - SPLIT LARGE FILES:
+CRITICAL - WRITE COMPLETE CODE:
 ═══════════════════════════════════════════════
 
-Don't make files bigger than 400 lines!
-Split HTML/CSS/JS into separate files:
+When creating HTML/code files:
+✓ Write COMPLETE, FUNCTIONAL code (ready to use!)
+✗ NEVER write "// add code here" placeholders
 
-[TOOL: write_file]
-path: index.html
-content: <!DOCTYPE html>
-<html>
-<head>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<h1>My Website</h1>
-<script src="script.js"></script>
-</body>
-</html>
-[/TOOL]
-
-[TOOL: write_file]
-path: style.css
-content: body {
-  margin: 0;
-  font-family: Arial;
-}
-h1 { color: blue; }
-[/TOOL]
-
-[TOOL: write_file]
-path: script.js
-content: document.querySelector('h1').addEventListener('click', () => {
-  alert('Hello!');
-});
-[/TOOL]
-
-═══════════════════════════════════════════════
-READY! Start working now.
-═══════════════════════════════════════════════`;
+READY! Explore categories then use tools!`;
 
       this.sessionManager.addMessage({
         role: 'system',
@@ -667,8 +686,11 @@ READY! Start working now.
     let lastToolCalls: string[] = [];
     let repeatCount = 0;
     
-    // Disable function calling for DeepSeek - use text-based tool invocation instead
+    // CRITICAL: COMPLETELY DISABLE function calling for DeepSeek
+    // DeepSeek model does NOT support OpenAI function calling format
+    // Must use pure text-based tool invocation with [TOOL:] format
     const useTextBasedTools = true;
+    const NEVER_SEND_TOOLS_TO_API = true; // Force text-based only
 
     while (true) { // Infinite loop - agent must complete the task!
       iterations++;
@@ -681,11 +703,12 @@ READY! Start working now.
       // Detect if agent is stuck in a loop (same tools repeatedly)
       const currentToolCallsStr = JSON.stringify(lastToolCalls);
       
-      // 1. Prepare LLM request with conversation history and tool definitions
+      // 1. Prepare LLM request with conversation history
+      // NEVER send tools to API - DeepSeek doesn't support function calling
       const request: LLMRequest = {
         model: this.config.model,
         messages: this.sessionManager.getMessages(),
-        tools: useTextBasedTools ? undefined : this.toolExecutor.getRegistry().getEssentialToolDefinitions(), // Disable function calling
+        tools: undefined, // ALWAYS undefined - force text-based tools only
         temperature: 0.7,
         maxTokens: 8000 // Increased from 4096 to prevent truncation
       };

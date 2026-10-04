@@ -88,12 +88,42 @@ export class ToolExecutor {
       return `No tools found in category: ${category}`;
     }
     
-    let result = `\n=== Tools in ${category} (${tools.length} tools) ===\n\n`;
+    let result = `\n╔═══════════════════════════════════════════════════════════╗\n`;
+    result += `║ 📦 TOOLS IN ${category.toUpperCase().padEnd(42)} ║\n`;
+    result += `║ ${tools.length} tools available`.padEnd(58) + ` ║\n`;
+    result += `╚═══════════════════════════════════════════════════════════╝\n\n`;
     
     tools.forEach((tool, idx) => {
-      result += `${idx + 1}. ${tool.name}\n`;
-      result += `   ${tool.description}\n\n`;
+      result += `${idx + 1}. 🔧 ${tool.name}\n`;
+      result += `   📝 ${tool.description}\n`;
+      
+      // Show parameters (handle both Record and ZodObject types)
+      const params: any = tool.parameters;
+      if (params && typeof params === 'object' && 'properties' in params) {
+        const props = params.properties;
+        const required = params.required || [];
+        
+        result += `   📋 Parameters:\n`;
+        for (const [key, value] of Object.entries(props)) {
+          const prop: any = value;
+          const isRequired = required.includes(key);
+          const reqLabel = isRequired ? '[REQUIRED]' : '[optional]';
+          const propType = prop.type || 'any';
+          result += `      • ${key} (${propType}) ${reqLabel}\n`;
+          if (prop.description) {
+            result += `        → ${prop.description}\n`;
+          }
+        }
+      } else {
+        result += `   ⚠️  No parameters defined (stub tool)\n`;
+      }
+      
+      result += `\n`;
     });
+    
+    result += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    result += `Use format: [TOOL: tool_name]\\nparameter: value\\n[/TOOL]\n`;
+    result += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     
     return result;
   }
