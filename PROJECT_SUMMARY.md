@@ -602,11 +602,18 @@ strak
 ## 📝 Changelog
 
 ### v1.0.1 (October 4, 2026)
-**Truncation Fix & File Splitting**
+**Truncation Fix & Improved Loop Detection**
 
 **Fixed:**
 - ✅ Response truncation when creating large files (>2000 lines)
 - ✅ Incomplete [TOOL] tags detection and recovery
+- ✅ Loop detection now only triggers on ERRORS, not successful tool calls
+- ✅ AI can now call tools unlimited times if they succeed
+
+**Improved:**
+- ✅ Loop detection logic: Only stops after 2 consecutive ERROR loops
+- ✅ AI can execute tools as many times as needed (if successful)
+- ✅ Better error messages when bugs detected
 - ✅ Multi-stage retry system for truncated responses
 
 **Added:**
@@ -617,9 +624,9 @@ strak
 
 **Technical:**
 - Increased retry maxTokens: 8000 → 16000 for multiple files
+- Error loop detection: Tracks failed tool calls separately from successful ones
 - Works on any iteration (not just first one)
 - Better code organization following web standards
-- Prevents model from creating monolithic files
 
 ### v1.0.0 (September 30, 2026)
 **Initial Release**

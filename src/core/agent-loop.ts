@@ -974,46 +974,10 @@ CREATE MULTIPLE SMALL FILES NOW!`
         }
       }
 
-      // Track tool calls for loop detection
+      // Track tool calls for ERROR loop detection (not for successful calls)
+      // AI can call tools unlimited times if they succeed
+      // Only stop if same tools ERROR 2+ times in a row
       const currentTools = response.toolCalls.map(tc => tc.name);
-      if (JSON.stringify(currentTools) === currentToolCallsStr) {
-        repeatCount++;
-        console.warn(`[Loop Detection] Repeated same tools ${repeatCount} times: ${currentTools.join(', ')}`);
-        
-        if (repeatCount >= 2) {
-          // Same tools called 2+ times in a row - STOP and report issue
-          if (ui) {
-            ui.stopThinking();
-            ui.error('Agent stuck in loop - stopping execution');
-          }
-          
-          const errorMessage = `I apologize, but I encountered a technical issue and got stuck in a loop while processing your request.
-
-**Issue Details:**
-- Repeated tools: ${currentTools.join(', ')}
-- Iterations: ${repeatCount + 1} times
-
-This appears to be a bug in the system. Please report this issue to:
-📧 **ambatukam.bleww@gmail.com**
-
-Include in your report:
-- Your query: "${userInput}"
-- Tools that looped: ${currentTools.join(', ')}
-- Timestamp: ${new Date().toISOString()}
-
-Thank you for your patience!`;
-          
-          this.sessionManager.addMessage({
-            role: 'assistant',
-            content: errorMessage
-          });
-          
-          return errorMessage;
-        }
-      } else {
-        repeatCount = 0;
-      }
-      lastToolCalls = currentTools;
 
       // 4. Request approval for tool execution
       if (ui && response.toolCalls.length > 0) {
@@ -1135,6 +1099,64 @@ Thank you for your patience!`;
       // Wait for all tools to complete
       const results = await Promise.all(toolPromises);
       toolResults.push(...results);
+
+      // ERROR LOOP DETECTION: Check if same tools failed repeatedly
+      const hasErrors = toolResults.some(r => r.content.startsWith('Error:'));
+      
+      if (hasErrors) {
+        // Check if same tools as previous iteration
+        if (JSON.stringify(currentTools) === currentToolCallsStr) {
+          repeatCount++;
+          console.warn(`[Error Loop] Same tools failed ${repeatCount} times: ${currentTools.join(', ')}`);
+          
+          if (repeatCount >= 2) {
+            // Same tools ERRORED 2+ times in a row - STOP and report bug
+            if (ui) {
+              ui.stopThinking();
+              ui.error('⚠️  Tool errors repeating - possible bug detected');
+            }
+            
+            const errorDetails = toolResults
+              .filter(r => r.content.startsWith('Error:'))
+              .map(r => r.content)
+              .join('\n');
+            
+            const errorMessage = `I apologize, but I encountered repeated errors while trying to execute tools.
+
+**Issue Details:**
+- Tools that failed: ${currentTools.join(', ')}
+- Failed ${repeatCount + 1} times in a row
+- Error messages:
+${errorDetails}
+
+This appears to be a bug in the system. Please report this to:
+📧 **ambatukam.bleww@gmail.com**
+
+Include in your report:
+- Your query: "${userInput}"
+- Failed tools: ${currentTools.join(', ')}
+- Error details: ${errorDetails.substring(0, 200)}...
+- Timestamp: ${new Date().toISOString()}
+
+Thank you for your patience!`;
+            
+            this.sessionManager.addMessage({
+              role: 'assistant',
+              content: errorMessage
+            });
+            
+            return errorMessage;
+          }
+        } else {
+          // Different tools, reset counter
+          repeatCount = 0;
+        }
+        lastToolCalls = currentTools;
+      } else {
+        // All tools succeeded - reset counter
+        repeatCount = 0;
+        lastToolCalls = currentTools;
+      }
 
       // 5. Add assistant message with tool calls
       this.sessionManager.addMessage({
