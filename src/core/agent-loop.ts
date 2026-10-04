@@ -466,193 +466,194 @@ NOW CREATE BRIEF MIND MAP for: ${userInput}`
     if (messages.length === 1 || (messages.length === 2 && smartStructureEnabled)) {
       // If Smart Structure enabled and we just added user message, add clear instruction
       const systemContent = smartStructureEnabled 
-        ? `You are STRAK AGENT. A plan has been created. NOW YOU MUST EXECUTE IT.
+        ? `You are STRAK AGENT. Execute the plan that was created.
 
-CRITICAL: Use this EXACT format to call tools (NO other format!):
+═══════════════════════════════════════════════
+TOOL FORMAT - THIS IS THE ONLY WAY TO USE TOOLS:
+═══════════════════════════════════════════════
 
 [TOOL: tool_name]
-param1: value1
-param2: value2
+parameter_name: parameter_value
 [/TOOL]
 
-❌ ABSOLUTELY FORBIDDEN FORMATS:
-- <｜｜DSML｜｜ invoke name="..."> ← NEVER USE THIS!
-- <function_calls> ← NEVER USE THIS!
-- <invoke name="..."> ← NEVER USE THIS!
-- {function: {name: "..."}} ← NEVER USE THIS!
-- Any XML or angle brackets < > ← NEVER USE THIS!
+THAT'S IT! Just write [TOOL: name], then parameters, then [/TOOL]
 
-✅ ONLY USE THIS:
-[TOOL: tool_name]
-param: value
-[/TOOL]
+═══════════════════════════════════════════════
+EXAMPLES:
+═══════════════════════════════════════════════
 
-COMMON TOOLS:
-
-1. CREATE/WRITE FILE:
-[TOOL: write_file]
-path: filename.html
-content: <!DOCTYPE html>
-<html>
-...all content here...
-</html>
-[/TOOL]
-
-2. READ FILE:
-[TOOL: read_file]
-path: filename.html
-[/TOOL]
-
-3. SEARCH WEB:
-[TOOL: web_search]
-query: what to search
-[/TOOL]
-
-4. RUN COMMAND:
-[TOOL: terminal]
-command: ls -la
-[/TOOL]
-
-⚠️ FILE SIZE LIMITS:
-- Keep files under 400 lines per file
-- For large projects: SPLIT into multiple files (HTML + CSS + JS)
-- Use multiple [TOOL: write_file] calls in sequence
-
-EXAMPLE - Creating game (GOOD - split into files):
+Example 1 - Create a file:
 [TOOL: write_file]
 path: game.html
 content: <!DOCTYPE html>
 <html>
-<head>
-<link rel="stylesheet" href="game.css">
-</head>
-<body>
-<canvas id="game"></canvas>
-<script src="game.js"></script>
-</body>
+<body>Hello World</body>
 </html>
 [/TOOL]
 
-[TOOL: write_file]
-path: game.css
-content: body { margin: 0; }
-canvas { display: block; }
-[/TOOL]
-
-[TOOL: write_file]
-path: game.js
-content: const canvas = document.getElementById('game');
-// Game code here
-[/TOOL]
-
-WRONG ✗:
-<｜｜DSML｜｜ invoke...  ← Never use this!
-content: Line 1
-content: Line 2  ← Don't repeat param name!
-
-START EXECUTING THE PLAN NOW using [TOOL] format!`
-        : `You are STRAK AGENT with access to 200+ tools.
-
-CRITICAL: Use this EXACT format to call tools (NO other format!):
-
-[TOOL: tool_name]
-param1: value1
-param2: value2
-[/TOOL]
-
-DO NOT use: <｜｜DSML｜｜, XML tags, function calls, or any other format!
-ONLY use the [TOOL: name] format shown above!
-
-COMMON TOOLS YOU'LL NEED:
-
-1. CREATE/WRITE FILE (for HTML, code, text files):
-[TOOL: write_file]
-path: myfile.html
-content: Full content here
-Can span multiple lines
-Just keep typing
-[/TOOL]
-
-2. READ FILE:
+Example 2 - Read a file:
 [TOOL: read_file]
-path: myfile.html
+path: config.json
 [/TOOL]
 
-3. SEARCH WEB:
+Example 3 - Search the web:
 [TOOL: web_search]
-query: search terms here
+query: latest news about AI
 [/TOOL]
 
-4. FETCH URL:
-[TOOL: web_fetch]
-url: https://example.com
-[/TOOL]
-
-5. RUN TERMINAL COMMAND:
+Example 4 - Run command:
 [TOOL: terminal]
 command: ls -la
 [/TOOL]
 
-6. LIST DIRECTORY:
-[TOOL: ls]
-path: ./folder
-[/TOOL]
+═══════════════════════════════════════════════
+FOR LARGE FILES - SPLIT THEM:
+═══════════════════════════════════════════════
 
-MULTILINE CONTENT RULES:
-- For "content" parameter, just keep typing on new lines
-- DON'T repeat "content:" on each line
-- Everything between "content:" and next parameter (or [/TOOL]) is the content
+Don't create huge files. Split into multiple small files:
 
-⚠️ IMPORTANT - FILE SIZE LIMITS:
-- NEVER create files larger than 400 lines in one tool call
-- If creating large projects (games, websites), SPLIT into multiple files:
-  ✓ Separate HTML, CSS, JavaScript into different files
-  ✓ Use <link> and <script> tags to connect them
-  ✓ This prevents response truncation and is better practice
-
-EXAMPLE - Creating HTML game (GOOD - Multiple files):
 [TOOL: write_file]
-path: game.html
+path: index.html
 content: <!DOCTYPE html>
 <html>
 <head>
-<title>My Game</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<canvas id="game"></canvas>
-<script src="game.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
 [/TOOL]
 
 [TOOL: write_file]
 path: style.css
-content: body { margin: 0; background: #000; }
-canvas { display: block; margin: 0 auto; }
+content: body { margin: 0; }
 [/TOOL]
 
 [TOOL: write_file]
-path: game.js
-content: const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-// Game logic here...
+path: script.js
+content: console.log('Hello');
 [/TOOL]
 
-WHAT NOT TO DO (FORBIDDEN!):
-✗ <｜｜DSML｜｜ invoke name="write_file"> ← ABSOLUTELY FORBIDDEN!
-✗ <function_calls> ← ABSOLUTELY FORBIDDEN!
-✗ <invoke name="..."> ← ABSOLUTELY FORBIDDEN!
-✗ {function: {name: "write_file"}} ← ABSOLUTELY FORBIDDEN!
-✗ Any XML format with < > ← ABSOLUTELY FORBIDDEN!
-✗ content: Line 1\ncontent: Line 2 ← Don't repeat param!
+NOW START EXECUTING!`
+        : `You are STRAK AGENT with 200+ tools available.
 
-ONLY CORRECT FORMAT:
-✓ [TOOL: write_file]\npath: file.txt\ncontent: Full text here\n[/TOOL]
+═══════════════════════════════════════════════
+TOOL FORMAT - THIS IS THE ONLY WAY TO USE TOOLS:
+═══════════════════════════════════════════════
 
-IF YOU USE FORBIDDEN FORMATS, I WILL REJECT YOUR RESPONSE!
+[TOOL: tool_name]
+parameter_name: parameter_value
+[/TOOL]
 
-BE EFFICIENT: Only use tools when needed. Explain briefly before using tools.`;
+THAT'S IT! Just write [TOOL: name], then parameters, then [/TOOL]
+
+═══════════════════════════════════════════════
+EXAMPLES OF CORRECT FORMAT:
+═══════════════════════════════════════════════
+
+1. CREATE FILE:
+[TOOL: write_file]
+path: myfile.html
+content: <!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body><h1>Hello</h1></body>
+</html>
+[/TOOL]
+
+2. READ FILE:
+[TOOL: read_file]
+path: myfile.html
+[/TOOL]
+
+3. SEARCH WEB:
+[TOOL: web_search]
+query: what is the weather today
+[/TOOL]
+
+4. GET URL CONTENT:
+[TOOL: web_fetch]
+url: https://example.com
+[/TOOL]
+
+5. RUN COMMAND:
+[TOOL: terminal]
+command: pwd
+[/TOOL]
+
+6. LIST FILES:
+[TOOL: ls]
+path: .
+[/TOOL]
+
+═══════════════════════════════════════════════
+MULTILINE CONTENT (like HTML/code):
+═══════════════════════════════════════════════
+
+Just keep writing after "content:", don't repeat "content:" again:
+
+[TOOL: write_file]
+path: game.html
+content: <!DOCTYPE html>
+<html>
+<head>
+<title>Game</title>
+<style>
+body { background: black; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+const canvas = document.getElementById('game');
+// more code here...
+</script>
+</body>
+</html>
+[/TOOL]
+
+═══════════════════════════════════════════════
+IMPORTANT - SPLIT LARGE FILES:
+═══════════════════════════════════════════════
+
+Don't make files bigger than 400 lines!
+Split HTML/CSS/JS into separate files:
+
+[TOOL: write_file]
+path: index.html
+content: <!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>My Website</h1>
+<script src="script.js"></script>
+</body>
+</html>
+[/TOOL]
+
+[TOOL: write_file]
+path: style.css
+content: body {
+  margin: 0;
+  font-family: Arial;
+}
+h1 { color: blue; }
+[/TOOL]
+
+[TOOL: write_file]
+path: script.js
+content: document.querySelector('h1').addEventListener('click', () => {
+  alert('Hello!');
+});
+[/TOOL]
+
+═══════════════════════════════════════════════
+READY! Start working now.
+═══════════════════════════════════════════════`;
 
       this.sessionManager.addMessage({
         role: 'system',
@@ -729,15 +730,18 @@ BE EFFICIENT: Only use tools when needed. Explain briefly before using tools.`;
       let parsedToolCalls: any[] = [];
       
       if (useTextBasedTools && response.content) {
-        // CRITICAL: Detect WRONG FORMAT and force retry
-        const hasWrongFormat = response.content.includes('<｜｜DSML｜｜') || 
-                               response.content.includes('<') ||
-                               response.content.includes('function_calls>') ||
-                               response.content.includes('invoke name=');
+        // CRITICAL: Detect WRONG FORMAT (but exclude content inside [TOOL] tags)
+        // Remove all [TOOL]...[/TOOL] blocks first, then check for forbidden formats
+        const contentWithoutTools = response.content.replace(/\[TOOL:[\s\S]*?\[\/TOOL\]/g, '');
+        
+        const hasWrongFormat = contentWithoutTools.includes('<｜｜DSML｜｜') || 
+                               contentWithoutTools.includes('function_calls>') ||
+                               contentWithoutTools.includes('invoke name="') ||
+                               contentWithoutTools.includes('<function_calls>');
         
         if (hasWrongFormat) {
-          console.error('[TextTools] ❌ DETECTED WRONG FORMAT! AI using forbidden format.');
-          console.error('[TextTools] Response contains:', response.content.substring(0, 200));
+          console.error('[TextTools] ❌ DETECTED WRONG FORMAT! AI using forbidden format OUTSIDE tool content.');
+          console.error('[TextTools] Wrong format found in:', contentWithoutTools.substring(0, 300));
           
           if (ui) {
             ui.info('[Warning] AI using wrong format. Forcing correction...');
@@ -752,9 +756,7 @@ BE EFFICIENT: Only use tools when needed. Explain briefly before using tools.`;
                 role: 'system',
                 content: `❌ ERROR! You used the WRONG format!
 
-YOU USED: <｜｜DSML｜｜> or <> or <function_calls> ← FORBIDDEN!
-
-YOU MUST USE THIS EXACT FORMAT:
+YOU MUST USE THIS EXACT FORMAT (nothing else!):
 
 [TOOL: tool_name]
 param: value
@@ -775,10 +777,13 @@ DO NOT USE:
 ✗ <｜｜DSML｜｜>
 ✗ <invoke>
 ✗ <function_calls>
+✗ <function_calls>
 ✗ {function: {name: "tool"}}
 
 ONLY USE:
-✓ [TOOL: name]\nparam: value\n[/TOOL]
+✓ [TOOL: name]
+param: value
+[/TOOL]
 
 NOW TRY AGAIN WITH CORRECT FORMAT!`
               }
@@ -792,9 +797,11 @@ NOW TRY AGAIN WITH CORRECT FORMAT!`
           
           // Check retry response
           if (retryResponse.content) {
-            const stillWrong = retryResponse.content.includes('<｜｜DSML｜｜') || 
-                              retryResponse.content.includes('<') ||
-                              retryResponse.content.includes('function_calls>');
+            const contentWithoutToolsRetry = retryResponse.content.replace(/\[TOOL:[\s\S]*?\[\/TOOL\]/g, '');
+            const stillWrong = contentWithoutToolsRetry.includes('<｜｜DSML｜｜') || 
+                              contentWithoutToolsRetry.includes('function_calls>') ||
+                              contentWithoutToolsRetry.includes('invoke name="') ||
+                              contentWithoutToolsRetry.includes('<function_calls>');
             
             if (stillWrong) {
               // AI still using wrong format after correction - show error to user
