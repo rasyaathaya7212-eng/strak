@@ -475,7 +475,17 @@ param1: value1
 param2: value2
 [/TOOL]
 
-DO NOT use: <｜｜DSML｜｜, function calls, or any other format!
+❌ ABSOLUTELY FORBIDDEN FORMATS:
+- <｜｜DSML｜｜ invoke name="..."> ← NEVER USE THIS!
+- <function_calls> ← NEVER USE THIS!
+- <invoke name="..."> ← NEVER USE THIS!
+- {function: {name: "..."}} ← NEVER USE THIS!
+- Any XML or angle brackets < > ← NEVER USE THIS!
+
+✅ ONLY USE THIS:
+[TOOL: tool_name]
+param: value
+[/TOOL]
 
 COMMON TOOLS:
 
@@ -629,13 +639,18 @@ const ctx = canvas.getContext('2d');
 // Game logic here...
 [/TOOL]
 
-WHAT NOT TO DO:
-✗ <｜｜DSML｜｜ invoke name="write_file">  ← WRONG FORMAT!
-✗ {function: {name: "write_file"}}       ← WRONG FORMAT!
-✗ content: Line 1\ncontent: Line 2       ← Don't repeat param!
+WHAT NOT TO DO (FORBIDDEN!):
+✗ <｜｜DSML｜｜ invoke name="write_file"> ← ABSOLUTELY FORBIDDEN!
+✗ <function_calls> ← ABSOLUTELY FORBIDDEN!
+✗ <invoke name="..."> ← ABSOLUTELY FORBIDDEN!
+✗ {function: {name: "write_file"}} ← ABSOLUTELY FORBIDDEN!
+✗ Any XML format with < > ← ABSOLUTELY FORBIDDEN!
+✗ content: Line 1\ncontent: Line 2 ← Don't repeat param!
 
-WHAT TO DO:
+ONLY CORRECT FORMAT:
 ✓ [TOOL: write_file]\npath: file.txt\ncontent: Full text here\n[/TOOL]
+
+IF YOU USE FORBIDDEN FORMATS, I WILL REJECT YOUR RESPONSE!
 
 BE EFFICIENT: Only use tools when needed. Explain briefly before using tools.`;
 
@@ -714,6 +729,103 @@ BE EFFICIENT: Only use tools when needed. Explain briefly before using tools.`;
       let parsedToolCalls: any[] = [];
       
       if (useTextBasedTools && response.content) {
+        // CRITICAL: Detect WRONG FORMAT and force retry
+        const hasWrongFormat = response.content.includes('<｜｜DSML｜｜') || 
+                               response.content.includes('<') ||
+                               response.content.includes('function_calls>') ||
+                               response.content.includes('invoke name=');
+        
+        if (hasWrongFormat) {
+          console.error('[TextTools] ❌ DETECTED WRONG FORMAT! AI using forbidden format.');
+          console.error('[TextTools] Response contains:', response.content.substring(0, 200));
+          
+          if (ui) {
+            ui.info('[Warning] AI using wrong format. Forcing correction...');
+          }
+          
+          // Force retry with ULTRA-STRICT prompt
+          const strictRequest: LLMRequest = {
+            model: this.config.model,
+            messages: [
+              ...this.sessionManager.getMessages(),
+              {
+                role: 'system',
+                content: `❌ ERROR! You used the WRONG format!
+
+YOU USED: <｜｜DSML｜｜> or <> or <function_calls> ← FORBIDDEN!
+
+YOU MUST USE THIS EXACT FORMAT:
+
+[TOOL: tool_name]
+param: value
+[/TOOL]
+
+EXAMPLE - Read file:
+[TOOL: read_file]
+path: hast.html
+[/TOOL]
+
+EXAMPLE - Write file:
+[TOOL: write_file]
+path: test.txt
+content: Hello World
+[/TOOL]
+
+DO NOT USE:
+✗ <｜｜DSML｜｜>
+✗ <invoke>
+✗ <function_calls>
+✗ {function: {name: "tool"}}
+
+ONLY USE:
+✓ [TOOL: name]\nparam: value\n[/TOOL]
+
+NOW TRY AGAIN WITH CORRECT FORMAT!`
+              }
+            ],
+            temperature: 0.3, // Lower temperature for more consistent formatting
+            maxTokens: 8000,
+            tools: undefined
+          };
+          
+          const retryResponse = await this.llmRouter.chat(strictRequest);
+          
+          // Check retry response
+          if (retryResponse.content) {
+            const stillWrong = retryResponse.content.includes('<｜｜DSML｜｜') || 
+                              retryResponse.content.includes('<') ||
+                              retryResponse.content.includes('function_calls>');
+            
+            if (stillWrong) {
+              // AI still using wrong format after correction - show error to user
+              if (ui) {
+                ui.stopThinking();
+                ui.error('⚠️  AI repeatedly using wrong format - model may not support text-based tools');
+              }
+              
+              const errorMsg = `I apologize, but I'm having difficulty using the correct tool format.
+
+This may be a compatibility issue with the model. Please try:
+1. Using a different model (e.g., Claude, GPT-4)
+2. Simplifying your request
+3. Reporting this to: ambatukam.bleww@gmail.com
+
+Model: ${this.config.model}
+Format error: Model keeps using forbidden XML/DSML format instead of [TOOL:] format`;
+              
+              this.sessionManager.addMessage({
+                role: 'assistant',
+                content: errorMsg
+              });
+              
+              return errorMsg;
+            } else {
+              // Retry succeeded, use new response
+              response.content = retryResponse.content;
+            }
+          }
+        }
+        
         parsedToolCalls = this.parseTextBasedToolCalls(response.content);
         
         if (parsedToolCalls.length > 0) {
