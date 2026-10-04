@@ -409,140 +409,234 @@ export class AgentLoop {
     // Smart Structure Planning Phase - AGENT 1 (Planning Only)
     if (smartStructureEnabled) {
       const { structureThinking } = require('../features/structure-thinking');
-      const fs = require('fs-extra');
-      const path = require('path');
+      const chalk = require('chalk');
       
-      // Reset plan for new query
+      // Enable structure thinking
+      structureThinking.enable();
       structureThinking.resetPlan();
+      
+      // Create plan
+      const plan = structureThinking.createPlan(userInput);
       
       if (ui) {
         ui.info('🧠 Smart Structure Mode: Creating execution plan...');
       }
       
-      // Create planning request - SIMPLE and SHORT to avoid timeout
-      const planningRequest: LLMRequest = {
-        model: this.config.model,
-        messages: [
-          {
-            role: 'system',
-            content: `You are STRAK Planning Agent. Create a SIMPLE step-by-step plan.
+      // Start visualization server
+      try {
+        const serverUrl = await structureThinking.startServer();
+        
+        if (ui) {
+          ui.stopThinking();
+          ui.success(`✅ Mind Map Server Started: ${serverUrl}`);
+          console.log(chalk.cyan('\n╔════════════════════════════════════════════════════════════════╗'));
+          console.log(chalk.cyan('║') + chalk.yellow.bold('  VISUALIZATION READY                                          ') + chalk.cyan('║'));
+          console.log(chalk.cyan('╠════════════════════════════════════════════════════════════════╣'));
+          console.log(chalk.cyan('║') + chalk.white(`  🌐 Open in browser: ${chalk.green.bold(serverUrl)}              `) + chalk.cyan('║'));
+          console.log(chalk.cyan('║') + chalk.white('  📊 Real-time mind map visualization of AI planning            ') + chalk.cyan('║'));
+          console.log(chalk.cyan('╚════════════════════════════════════════════════════════════════╝\n'));
+        }
+        
+        // Create planning request - Build mind map structure
+        const planningRequest: LLMRequest = {
+          model: this.config.model,
+          messages: [
+            {
+              role: 'system',
+              content: `You are STRAK Planning Agent. Create a structured plan as a TREE of nodes.
 
-FORMAT (plain text, numbered steps):
+Use this FORMAT for each node (you can create multiple nodes):
 
-1. [Step name] - Brief description
-2. [Step name] - Brief description
-3. [Step name] - Brief description
+[NODE: child]
+title: Step name (short, max 50 chars)
+description: What this step does (one sentence)
+parent: root
+[/NODE]
 
 RULES:
-- Maximum 5 steps
-- Each step: one clear action
-- Keep it SIMPLE and SHORT
-- No code, no tools, just high-level plan
+- Create 3-7 nodes maximum
+- First node always has "parent: root"
+- Subsequent nodes can have "parent: root" or reference another node's title
+- Keep titles SHORT and clear
+- Keep descriptions to ONE sentence each
+- Each node = one clear action or subtask
 
-Example:
-1. Create HTML structure - Basic HTML5 template with canvas
-2. Add CSS styling - Game board, colors, responsive design
-3. Implement game logic - Snake movement, collision, scoring
-4. Add controls - Keyboard input handling
-5. Test and polish - Final adjustments
+EXAMPLE OUTPUT:
 
-NOW CREATE PLAN for: ${userInput}`
-          }
-        ],
-        temperature: 0.5,
-        maxTokens: 500, // Very short - just planning!
-        tools: undefined
-      };
-      
-      try {
+[NODE: child]
+title: Create HTML structure
+description: Build basic HTML5 template with canvas element
+parent: root
+[/NODE]
+
+[NODE: child]
+title: Add CSS styling
+description: Style the game board, colors, and responsive layout
+parent: root
+[/NODE]
+
+[NODE: child]
+title: Implement game logic
+description: Code snake movement, collision detection, and scoring
+parent: root
+[/NODE]
+
+[NODE: child]
+title: Add keyboard controls
+description: Handle arrow key inputs for player control
+parent: root
+[/NODE]
+
+NOW CREATE NODES for: ${userInput}`
+            }
+          ],
+          temperature: 0.5,
+          maxTokens: 800,
+          tools: undefined
+        };
+        
+        ui.startThinking('Building plan structure...');
         const planResponse = await this.llmRouter.chat(planningRequest);
+        ui.stopThinking();
         
         if (!planResponse || !planResponse.content) {
-          if (ui) {
-            ui.info('[Warning] Planning failed. Continuing without plan...');
-          }
-        } else {
-          // Save plan to file
-          const planFile = path.join(process.cwd(), '.strak-plan.txt');
-          const planContent = `=== STRAK EXECUTION PLAN ===
-Created: ${new Date().toISOString()}
-Query: ${userInput}
-
-${planResponse.content}
-
-=== END OF PLAN ===`;
-          
-          await fs.writeFile(planFile, planContent, 'utf-8');
-          
-          if (ui) {
-            ui.stopThinking();
-            ui.success('✅ Plan created and saved to .strak-plan.txt');
-            ui.aiReasoning(planResponse.content);
-          }
-          
-          // Ask user what to do next
-          const inquirer = require('inquirer');
-          const { action } = await inquirer.prompt([
-            {
-              type: 'list',
-              name: 'action',
-              message: 'What would you like to do with this plan?',
-              choices: [
-                { name: '1. Execute the plan now (launch new agent)', value: 'execute' },
-                { name: '2. Just save the plan and exit', value: 'save' },
-                { name: '3. Cancel', value: 'cancel' }
-              ]
-            }
-          ]);
-          
-          if (action === 'save') {
-            return `Plan saved to .strak-plan.txt. You can execute it later by running STRAK with Smart Structure mode again.`;
-          }
-          
-          if (action === 'cancel') {
-            return 'Planning cancelled.';
-          }
-          
-          // If execute, launch Agent 2
-          if (action === 'execute') {
-            if (ui) {
-              ui.info('\n🚀 Launching execution agent...\n');
-            }
+          throw new Error('Failed to generate plan');
+        }
+        
+        // Parse nodes from response
+        const nodes = this.parseMindMapNodes(planResponse.content, userInput);
+        
+        if (nodes.length === 0) {
+          throw new Error('No valid nodes found in plan');
+        }
+        
+        // Add nodes to the plan
+        for (const node of nodes) {
+          try {
+            const parentId = node.parent === 'root' ? 'root' : 
+                           nodes.find(n => n.title === node.parent)?.id || 'root';
             
-            // Read the plan
-            const savedPlan = await fs.readFile(planFile, 'utf-8');
+            const nodeId = structureThinking.addNode(parentId, {
+              type: node.type || 'subtask',
+              title: node.title,
+              description: node.description,
+              status: 'planned'
+            });
             
-            // Create new session for Agent 2 with plan context
-            this.sessionManager = new SessionManager(); // Fresh session
-            this.sessionManager.addMessage({
-              role: 'system',
-              content: `You are STRAK Execution Agent. You have received a plan to execute.
+            node.id = nodeId; // Store ID for parent references
+          } catch (err) {
+            console.warn(`[Plan] Could not add node: ${node.title}`);
+          }
+        }
+        
+        if (ui) {
+          ui.success(`✅ Plan created with ${nodes.length} steps`);
+          ui.info(`\n📊 View the plan at: ${chalk.green.bold(serverUrl)}\n`);
+        }
+        
+        // Ask user to review in browser and decide
+        const inquirer = require('inquirer');
+        const { action } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'action',
+            message: chalk.yellow('Review the plan in your browser, then choose:'),
+            choices: [
+              { name: chalk.green('1. ✅ Execute the plan now (launch Agent 2)'), value: 'execute' },
+              { name: chalk.blue('2. 💾 Save plan and exit'), value: 'save' },
+              { name: chalk.red('3. ❌ Cancel'), value: 'cancel' }
+            ]
+          }
+        ]);
+        
+        if (action === 'save') {
+          const planJson = structureThinking.exportPlan();
+          const fs = require('fs-extra');
+          const path = require('path');
+          await fs.writeFile(path.join(process.cwd(), '.strak-plan.json'), planJson, 'utf-8');
+          
+          if (ui) {
+            ui.success('Plan saved to .strak-plan.json');
+          }
+          
+          // Keep server running
+          console.log(chalk.yellow(`\n⚠️  Server still running at ${serverUrl}`));
+          console.log(chalk.yellow('   Press Ctrl+C to stop\n'));
+          
+          return `Plan saved. Server running at ${serverUrl}`;
+        }
+        
+        if (action === 'cancel') {
+          structureThinking.stopServer();
+          return 'Planning cancelled.';
+        }
+        
+        // If execute, launch Agent 2
+        if (action === 'execute') {
+          if (ui) {
+            ui.info('\n🚀 Launching Agent 2 (Execution)...\n');
+          }
+          
+          // Get the plan from server (Agent 2 reads from localhost:3737)
+          const currentPlan = structureThinking.getCurrentPlan();
+          
+          if (!currentPlan) {
+            throw new Error('No plan available for execution');
+          }
+          
+          // Format plan for Agent 2
+          let planText = `EXECUTION PLAN (from Mind Map):\n\n`;
+          planText += `Main Goal: ${currentPlan.rootNode.description}\n\n`;
+          planText += `Steps:\n`;
+          
+          currentPlan.history.forEach((node: any, idx: number) => {
+            planText += `${idx + 1}. ${node.title}\n`;
+            planText += `   → ${node.description}\n\n`;
+          });
+          
+          // Create new session for Agent 2 with plan context
+          this.sessionManager = new SessionManager(); // Fresh session
+          this.sessionManager.addMessage({
+            role: 'system',
+            content: `You are STRAK Execution Agent (Agent 2).
 
-PLAN:
-${savedPlan}
+You received this plan from Agent 1 (available at http://localhost:${structureThinking['port']}):
+
+${planText}
 
 YOUR JOB:
 - Execute the plan step by step
 - Use tools to complete each step  
-- Write COMPLETE, WORKING code (not skeleton)
+- Write COMPLETE, WORKING code (not skeleton!)
 - Follow the plan but be flexible if needed
+- Each tool execution will update the mind map visualization
+
+🚨 CRITICAL: Write COMPLETE, FUNCTIONAL code - NO placeholders, NO "// add code here" comments!
 
 START EXECUTING NOW!`
-            });
-            
-            this.sessionManager.addMessage({
-              role: 'user',
-              content: `Execute the plan for: ${userInput}`
-            });
-            
-            // Continue to main loop (Agent 2 execution)
+          });
+          
+          this.sessionManager.addMessage({
+            role: 'user',
+            content: `Execute this plan: ${userInput}`
+          });
+          
+          // Continue to main loop (Agent 2 execution)
+          if (ui) {
+            ui.info('Agent 2 is now executing the plan...');
+            ui.info(`Watch progress at: ${chalk.green(serverUrl)}\n`);
           }
         }
+        
       } catch (planError: any) {
         if (ui) {
-          ui.info(`[Warning] Planning error: ${planError.message}. Continuing without plan...`);
+          ui.stopThinking();
+          ui.info(`[Warning] Planning error: ${planError.message}. Continuing without visualization...`);
         }
         console.error('[Planning Error]', planError.message);
+        
+        // Fallback to simple mode without visualization
+        structureThinking.disable();
       }
     }
 

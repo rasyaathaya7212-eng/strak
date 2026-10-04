@@ -6,18 +6,85 @@
 import { Tool } from '../../types/index.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import * as os from 'os';
 
 const execAsync = promisify(exec);
+
+/**
+ * Detect if running on Windows
+ */
+function isWindows(): boolean {
+  return os.platform() === 'win32';
+}
+
+/**
+ * Translate common Unix commands to Windows equivalents
+ */
+function translateCommand(command: string): string {
+  if (!isWindows()) {
+    return command; // Unix/Linux/Mac - no translation needed
+  }
+  
+  // Windows - translate common Unix commands
+  let translated = command;
+  
+  // Replace Unix command separators with Windows equivalents
+  // && works in both, but || needs to be translated carefully
+  
+  // Common command translations
+  const translations: Record<string, string> = {
+    'pwd': 'cd',                    // Print working directory
+    'ls': 'dir',                     // List directory
+    'ls -la': 'dir',                 // List all with details
+    'ls -l': 'dir',                  // List with details
+    'ls -a': 'dir /a',               // List all including hidden
+    'cat': 'type',                   // Display file content
+    'rm': 'del',                     // Remove file
+    'rm -rf': 'rmdir /s /q',        // Remove directory recursively
+    'cp': 'copy',                    // Copy file
+    'mv': 'move',                    // Move/rename file
+    'mkdir': 'mkdir',                // Create directory (same)
+    'rmdir': 'rmdir',                // Remove directory (same)
+    'touch': 'type nul >',           // Create empty file
+    'clear': 'cls',                  // Clear screen
+    'which': 'where',                // Find command location
+    'grep': 'findstr',               // Search in files
+    'echo': 'echo',                  // Print (same)
+    'cd': 'cd',                      // Change directory (same)
+  };
+  
+  // Try to translate the command
+  for (const [unix, windows] of Object.entries(translations)) {
+    // Match command at start or after && or after ;
+    const regex = new RegExp(`(^|&&|;)\\s*${unix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$|&&|;)`, 'g');
+    translated = translated.replace(regex, (match, prefix, suffix) => {
+      return `${prefix} ${windows}${suffix}`;
+    });
+  }
+  
+  return translated;
+}
+
+/**
+ * Get appropriate shell for the OS
+ */
+function getShell(): string {
+  if (isWindows()) {
+    // Try to use PowerShell if available, fallback to CMD
+    return 'powershell.exe';
+  }
+  return '/bin/bash';
+}
 
 export const terminalTools: Tool[] = [
   // Hermes - Terminal command
   {
     name: 'terminal',
-    description: 'Jalankan perintah shell, foreground/background/PTY',
+    description: 'Jalankan perintah shell dengan auto-detect OS (Windows/Unix)',
     parameters: {
       type: 'object',
       properties: {
-        command: { type: 'string', description: 'Perintah shell yang akan dijalankan' },
+        command: { type: 'string', description: 'Perintah shell (Unix commands akan ditranslate otomatis di Windows)' },
         cwd: { type: 'string', description: 'Working directory (optional)' }
       },
       required: ['command']
@@ -29,25 +96,60 @@ export const terminalTools: Tool[] = [
       }
       
       try {
-        const { stdout, stderr } = await execAsync(args.command, { 
+        const originalCommand = args.command;
+        const translatedCommand = translateCommand(originalCommand);
+        
+        // Log translation if command was changed
+        if (translatedCommand !== originalCommand && isWindows()) {
+          console.log(`[Terminal] OS: Windows`);
+          console.log(`[Terminal] Original: ${originalCommand}`);
+          console.log(`[Terminal] Translated: ${translatedCommand}`);
+        }
+        
+        const { stdout, stderr } = await execAsync(translatedCommand, { 
           cwd: args.cwd || process.cwd(),
-          timeout: 30000 
+          timeout: 30000,
+          shell: isWindows() ? 'cmd.exe' : '/bin/bash' // Use appropriate shell
         });
-        return stdout || stderr || 'Command executed successfully';
+        
+        const output = stdout || stderr || 'Command executed successfully';
+        
+        // Add OS info in output if helpful
+        if (isWindows() && translatedCommand !== originalCommand) {
+          return `[Windows] ${output}`;
+        }
+        
+        return output;
       } catch (error: any) {
+        // Provide helpful error message for Windows users
+        if (isWindows() && error.message.includes('is not recognized')) {
+          return `Error: Command not found in Windows. 
+
+Original command: ${args.command}
+Translated to: ${translateCommand(args.command)}
+
+💡 Tip for Windows:
+- Use "dir" instead of "ls"
+- Use "cd" instead of "pwd"
+- Use "type" instead of "cat"
+- Or use PowerShell commands
+
+Error details: ${error.message}`;
+        }
+        
         return `Error: ${error.message}`;
       }
     }
   },
 
-  // Claude Code - Bash command
+  // Claude Code - Bash command (with Windows support)
   {
     name: 'bash',
-    description: 'Perintah shell (Claude Code)',
+    description: 'Perintah shell dengan auto-translation untuk Windows',
     parameters: {
       type: 'object',
       properties: {
-        command: { type: 'string', description: 'Bash command' }
+        command: { type: 'string', description: 'Shell command (auto-translated for Windows)' }
       },
       required: ['command']
     },
@@ -58,9 +160,30 @@ export const terminalTools: Tool[] = [
       }
       
       try {
-        const { stdout, stderr } = await execAsync(args.command, { timeout: 30000 });
+        const translatedCommand = translateCommand(args.command);
+        
+        const { stdout, stderr } = await execAsync(translatedCommand, { 
+          timeout: 30000,
+          shell: isWindows() ? 'cmd.exe' : '/bin/bash'
+        });
+        
         return stdout || stderr || 'Done';
       } catch (error: any) {
+        // Helpful error for Windows
+        if (isWindows() && error.message.includes('is not recognized')) {
+          return `Error: Command not found in Windows.
+
+Tried: ${translateCommand(args.command)}
+
+💡 Use Windows-compatible commands:
+- "dir" (list files)
+- "cd" (current directory)  
+- "type filename" (read file)
+- "npm", "node", "python" (these work as-is)
+
+Error: ${error.message}`;
+        }
+        
         return `Error: ${error.message}`;
       }
     }
