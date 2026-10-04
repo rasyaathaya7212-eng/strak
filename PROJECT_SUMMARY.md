@@ -601,6 +601,57 @@ strak
 
 ## 📝 Changelog
 
+### v1.0.5 (October 4, 2026)
+**CRITICAL FIX - Force Complete Code Generation**
+
+**MAJOR ISSUE RESOLVED:**
+- ❌ Problem: AI writes skeleton code only (empty functions, TODO comments)
+- ✅ Solution: Added CRITICAL WARNING at top of system prompt with examples
+
+**Changes:**
+- 🚨 Added **prominent warning** with emoji at start of EVERY system prompt
+- 📈 Increased maxTokens: 8000 → 16000 for main requests
+- 📝 Clear BAD vs GOOD examples showing skeleton vs complete code
+- ⚡ Warning shown in BOTH Smart Structure mode and Normal mode
+
+**Warning Content:**
+```
+🚨🚨🚨 CRITICAL - WRITE COMPLETE CODE ONLY! 🚨🚨🚨
+
+When creating HTML/JavaScript/game files:
+✅ Write COMPLETE, WORKING code with ALL logic
+❌ NEVER write skeleton/structure only
+❌ NEVER write "// add logic here" comments
+
+BAD (skeleton):
+<script>
+function gameLoop() {
+  // TODO: add game logic
+}
+</script>
+
+GOOD (complete):
+<script>
+let score=0, snake=[{x:10,y:10}];
+function gameLoop(){
+  // FULL working implementation here
+  snake.forEach(s=>ctx.fillRect(s.x*20,s.y*20,18,18));
+}
+setInterval(gameLoop,100);
+</script>
+```
+
+**Problem Solved:**
+- ❌ Before: AI creates usahja.html with only `<head>` and empty `body {`
+- ✅ Now: AI warned IMMEDIATELY to write COMPLETE code
+- ❌ Before: Files have "// TODO" comments everywhere
+- ✅ Now: Clear examples of what NOT to do vs what TO do
+
+**Technical:**
+- maxTokens: 16000 (enough for complete games)
+- Warning positioned at TOP before any instructions
+- Visual markers (🚨 emoji) make warning impossible to miss
+
 ### v1.0.4 (October 4, 2026)
 **DSML Format Auto-Conversion - DeepSeek Compatibility**
 

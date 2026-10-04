@@ -87,34 +87,53 @@ export class AgentLoop {
 
   /**
    * Parse DSML format (DeepSeek's internal format) and convert to standard format
-   * Format: <｜｜DSML｜｜ invoke name="tool_name"><｜｜DSML｜｜ parameter...>{"key":"value"}</｜｜DSML｜｜ parameter>
+   * Format: <｜｜DSML｜｜ invoke name="tool_name">
+   *         <｜｜DSML｜｜ parameter name="param1">value1</｜｜DSML｜｜ parameter>
+   *         <｜｜DSML｜｜ parameter name="param2">value2</｜｜DSML｜｜ parameter>
    */
   private parseDSMLToolCalls(content: string): any[] {
     const toolCalls: any[] = [];
     
-    // Pattern for DSML invoke blocks
-    const dsmlPattern = /<｜｜DSML｜｜\s*invoke\s+name="(\w+)"[\s\S]*?<｜｜DSML｜｜\s*parameter[\s\S]*?>([\s\S]*?)<\/｜｜DSML｜｜\s*parameter>/g;
-    let match;
+    // Pattern for DSML invoke blocks (each invoke can have multiple parameters)
+    const invokePattern = /<｜｜DSML｜｜\s*invoke\s+name="(\w+)">([\s\S]*?)<\/｜｜DSML｜｜\s*invoke>/g;
+    let invokeMatch;
     let callIndex = 0;
     
-    while ((match = dsmlPattern.exec(content)) !== null) {
-      const toolName = match[1];
-      const argsJson = match[2].trim();
+    while ((invokeMatch = invokePattern.exec(content)) !== null) {
+      const toolName = invokeMatch[1];
+      const paramsBlock = invokeMatch[2];
       
-      try {
-        // Parse JSON arguments
-        const args = JSON.parse(argsJson);
+      // Extract parameters from the block
+      const args: any = {};
+      
+      // Pattern for individual parameters
+      const paramPattern = /<｜｜DSML｜｜\s*parameter\s+name="(\w+)"[\s\S]*?>([\s\S]*?)<\/｜｜DSML｜｜\s*parameter>/g;
+      let paramMatch;
+      
+      while ((paramMatch = paramPattern.exec(paramsBlock)) !== null) {
+        const paramName = paramMatch[1];
+        let paramValue = paramMatch[2].trim();
         
-        toolCalls.push({
-          id: `dsml_call_${callIndex++}`,
-          name: toolName,
-          args: args
-        });
+        // Try to parse as JSON if it looks like JSON
+        if ((paramValue.startsWith('{') && paramValue.endsWith('}')) || 
+            (paramValue.startsWith('[') && paramValue.endsWith(']'))) {
+          try {
+            paramValue = JSON.parse(paramValue);
+          } catch (e) {
+            // Keep as string if JSON parsing fails
+          }
+        }
         
-        console.log(`[DSML Parser] Converted ${toolName}:`, JSON.stringify(args).substring(0, 150));
-      } catch (e) {
-        console.warn(`[DSML Parser] Failed to parse JSON for ${toolName}:`, argsJson.substring(0, 100));
+        args[paramName] = paramValue;
       }
+      
+      toolCalls.push({
+        id: `dsml_call_${callIndex++}`,
+        name: toolName,
+        args: args
+      });
+      
+      console.log(`[DSML Parser] Converted ${toolName}:`, JSON.stringify(args).substring(0, 150));
     }
     
     return toolCalls;
@@ -511,6 +530,45 @@ NOW CREATE BRIEF MIND MAP for: ${userInput}`
       const systemContent = smartStructureEnabled 
         ? `You are STRAK AGENT with 200+ TOOLS across 15 categories.
 
+🚨🚨🚨 CRITICAL - WRITE COMPLETE CODE ONLY! 🚨🚨🚨
+
+When creating HTML/JavaScript/game files:
+✅ Write COMPLETE, WORKING code with ALL logic
+❌ NEVER write skeleton/structure only
+❌ NEVER write "// add logic here" comments
+❌ NEVER leave empty functions
+
+BAD (skeleton only):
+<script>
+function gameLoop() {
+  // TODO: add game logic
+}
+</script>
+
+GOOD (complete code):
+<script>
+let score = 0, snake = [{x:10,y:10}], food = {x:15,y:15};
+let dx=1, dy=0;
+document.onkeydown = e => {
+  if(e.key=='ArrowUp') {dx=0;dy=-1;}
+  if(e.key=='ArrowDown') {dx=0;dy=1;}
+};
+function gameLoop() {
+  let head = {x:snake[0].x+dx, y:snake[0].y+dy};
+  snake.unshift(head);
+  if(head.x==food.x && head.y==food.y) {
+    score++;
+    food = {x:Math.random()*20|0, y:Math.random()*20|0};
+  } else snake.pop();
+  ctx.clearRect(0,0,400,400);
+  snake.forEach(s=>ctx.fillRect(s.x*20,s.y*20,18,18));
+  ctx.fillRect(food.x*20,food.y*20,18,18);
+}
+setInterval(gameLoop, 100);
+</script>
+
+🚨🚨🚨 END WARNING 🚨🚨🚨
+
 ═══════════════════════════════════════════════
 HOW TO DISCOVER & USE TOOLS (2-STEP PROCESS):
 ═══════════════════════════════════════════════
@@ -581,6 +639,45 @@ When creating HTML/code:
 
 START EXECUTING THE PLAN!`
         : `You are STRAK AGENT with 200+ TOOLS across 15 categories.
+
+🚨🚨🚨 CRITICAL - WRITE COMPLETE CODE ONLY! 🚨🚨🚨
+
+When user asks for HTML/JavaScript/game files:
+✅ Write COMPLETE, WORKING code with ALL logic
+❌ NEVER write skeleton/structure only
+❌ NEVER write "// add logic here" comments  
+❌ NEVER leave empty functions
+
+BAD (skeleton):
+<script>
+function gameLoop() {
+  // TODO: add game logic
+}
+</script>
+
+GOOD (complete):
+<script>
+let score=0, snake=[{x:10,y:10}], food={x:15,y:15};
+let dx=1, dy=0;
+document.onkeydown=e=>{
+  if(e.key=='ArrowUp'){dx=0;dy=-1;}
+  if(e.key=='ArrowDown'){dx=0;dy=1;}
+};
+function gameLoop(){
+  let head={x:snake[0].x+dx,y:snake[0].y+dy};
+  snake.unshift(head);
+  if(head.x==food.x&&head.y==food.y){
+    score++;
+    food={x:Math.random()*20|0,y:Math.random()*20|0};
+  }else snake.pop();
+  ctx.clearRect(0,0,400,400);
+  snake.forEach(s=>ctx.fillRect(s.x*20,s.y*20,18,18));
+  ctx.fillRect(food.x*20,food.y*20,18,18);
+}
+setInterval(gameLoop,100);
+</script>
+
+🚨🚨🚨 END WARNING 🚨🚨🚨
 
 ═══════════════════════════════════════════════
 HOW TO DISCOVER & USE TOOLS (2-STEP PROCESS):
@@ -753,7 +850,7 @@ READY! Explore categories then use tools!`;
         messages: this.sessionManager.getMessages(),
         tools: undefined, // ALWAYS undefined - force text-based tools only
         temperature: 0.7,
-        maxTokens: 8000 // Increased from 4096 to prevent truncation
+        maxTokens: 16000 // Increased to allow complete code generation
       };
 
       // Add guidance if iterations are high

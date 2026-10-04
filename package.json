@@ -1,6 +1,6 @@
 {
   "name": "strak",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "STRAK AGENT - AI Agent with Chimera Architecture combining Claude Code, OpenClaw, and Hermes capabilities",
   "main": "dist/index.js",
   "bin": {
