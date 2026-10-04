@@ -503,16 +503,36 @@ query: what to search
 command: ls -la
 [/TOOL]
 
-MULTILINE CONTENT:
-Just continue typing on new lines, don't repeat "content:" again!
+⚠️ FILE SIZE LIMITS:
+- Keep files under 400 lines per file
+- For large projects: SPLIT into multiple files (HTML + CSS + JS)
+- Use multiple [TOOL: write_file] calls in sequence
 
-CORRECT ✓:
+EXAMPLE - Creating game (GOOD - split into files):
 [TOOL: write_file]
 path: game.html
 content: <!DOCTYPE html>
 <html>
-<body>Hello</body>
+<head>
+<link rel="stylesheet" href="game.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+<script src="game.js"></script>
+</body>
 </html>
+[/TOOL]
+
+[TOOL: write_file]
+path: game.css
+content: body { margin: 0; }
+canvas { display: block; }
+[/TOOL]
+
+[TOOL: write_file]
+path: game.js
+content: const canvas = document.getElementById('game');
+// Game code here
 [/TOOL]
 
 WRONG ✗:
@@ -573,26 +593,40 @@ MULTILINE CONTENT RULES:
 - DON'T repeat "content:" on each line
 - Everything between "content:" and next parameter (or [/TOOL]) is the content
 
-EXAMPLE - Creating HTML game:
+⚠️ IMPORTANT - FILE SIZE LIMITS:
+- NEVER create files larger than 400 lines in one tool call
+- If creating large projects (games, websites), SPLIT into multiple files:
+  ✓ Separate HTML, CSS, JavaScript into different files
+  ✓ Use <link> and <script> tags to connect them
+  ✓ This prevents response truncation and is better practice
+
+EXAMPLE - Creating HTML game (GOOD - Multiple files):
 [TOOL: write_file]
 path: game.html
 content: <!DOCTYPE html>
 <html>
 <head>
 <title>My Game</title>
-<style>
-body { margin: 0; }
-canvas { display: block; }
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <canvas id="game"></canvas>
-<script>
-const canvas = document.getElementById('game');
-// ... rest of JavaScript code ...
-</script>
+<script src="game.js"></script>
 </body>
 </html>
+[/TOOL]
+
+[TOOL: write_file]
+path: style.css
+content: body { margin: 0; background: #000; }
+canvas { display: block; margin: 0 auto; }
+[/TOOL]
+
+[TOOL: write_file]
+path: game.js
+content: const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+// Game logic here...
 [/TOOL]
 
 WHAT NOT TO DO:
@@ -690,6 +724,124 @@ BE EFFICIENT: Only use tools when needed. Explain briefly before using tools.`;
           
           // Remove [TOOL] tags from content for display
           response.content = response.content.replace(/\[TOOL:[\s\S]*?\[\/TOOL\]/g, '').trim();
+        } else {
+          // Check if there's incomplete [TOOL] tag (response was truncated)
+          const hasIncompleteTool = response.content.includes('[TOOL:') && !response.content.includes('[/TOOL]');
+          
+          if (hasIncompleteTool) {
+            // Response was truncated - ask AI to try with simpler/chunked approach
+            console.warn('[TextTools] Detected incomplete tool call - response was truncated');
+            console.warn(`[TextTools] Response length: ${response.content.length} chars`);
+            
+            if (ui) {
+              ui.info('[Warning] Response truncated. Requesting chunked approach...');
+            }
+            
+            const retryRequest: LLMRequest = {
+              model: this.config.model,
+              messages: [
+                ...this.sessionManager.getMessages(),
+                {
+                  role: 'system',
+                  content: `⚠️ YOUR PREVIOUS RESPONSE WAS TOO LONG AND GOT TRUNCATED!
+
+SOLUTION: Break it into MULTIPLE SMALLER FILES:
+
+EXAMPLE - Instead of one huge game.html (5000 lines):
+✓ Create game.html (200 lines - basic HTML structure)
+✓ Create game.js (300 lines - game logic)
+✓ Create style.css (100 lines - styles)
+
+DO THIS NOW:
+1. Split large content into multiple files (max 400 lines per file)
+2. Use separate [TOOL: write_file] for EACH file
+3. Keep each tool call SHORT
+4. Link files together (e.g., <script src="game.js"></script>)
+
+FORMAT:
+[TOOL: write_file]
+path: file1.html
+content: Short content here (max 400 lines)
+[/TOOL]
+
+[TOOL: write_file]
+path: file2.js
+content: Short content here (max 400 lines)
+[/TOOL]
+
+START NOW - create multiple small files instead of one big file!`
+                }
+              ],
+              temperature: 0.7,
+              maxTokens: 16000, // Higher limit for multiple smaller files
+              tools: undefined
+            };
+            
+            const retryResponse = await this.llmRouter.chat(retryRequest);
+            
+            // Try parsing again
+            if (retryResponse.content) {
+              const retryToolCalls = this.parseTextBasedToolCalls(retryResponse.content);
+              if (retryToolCalls.length > 0) {
+                console.log(`[TextTools] Retry successful: ${retryToolCalls.length} tools parsed`);
+                response.toolCalls = retryToolCalls;
+                response.content = retryResponse.content.replace(/\[TOOL:[\s\S]*?\[\/TOOL\]/g, '').trim();
+              } else {
+                // Still no tools - might need more guidance
+                if (ui) {
+                  ui.info('[Warning] Retry failed to produce tools. One more attempt...');
+                }
+                
+                // Final attempt with even more explicit instruction
+                const finalRequest: LLMRequest = {
+                  model: this.config.model,
+                  messages: [
+                    ...this.sessionManager.getMessages(),
+                    {
+                      role: 'system',
+                      content: `CRITICAL: You need to create files using this EXACT format:
+
+[TOOL: write_file]
+path: main.html
+content: <!DOCTYPE html>
+<html>
+<head><title>Simple</title></head>
+<body>
+<h1>Hello</h1>
+<script src="script.js"></script>
+</body>
+</html>
+[/TOOL]
+
+[TOOL: write_file]
+path: script.js
+content: console.log('Hello');
+// Add your JavaScript here
+[/TOOL]
+
+CREATE MULTIPLE SMALL FILES NOW!`
+                    }
+                  ],
+                  temperature: 0.5,
+                  maxTokens: 16000,
+                  tools: undefined
+                };
+                
+                const finalResponse = await this.llmRouter.chat(finalRequest);
+                if (finalResponse.content) {
+                  const finalToolCalls = this.parseTextBasedToolCalls(finalResponse.content);
+                  if (finalToolCalls.length > 0) {
+                    console.log(`[TextTools] Final retry successful: ${finalToolCalls.length} tools`);
+                    response.toolCalls = finalToolCalls;
+                    response.content = finalResponse.content.replace(/\[TOOL:[\s\S]*?\[\/TOOL\]/g, '').trim();
+                  } else {
+                    // Give up and return explanation
+                    response.content = finalResponse.content || 'I apologize, I had trouble creating the files. Could you try with a simpler request?';
+                  }
+                }
+              }
+            }
+          }
         }
       }
 

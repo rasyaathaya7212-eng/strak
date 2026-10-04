@@ -601,6 +601,26 @@ strak
 
 ## 📝 Changelog
 
+### v1.0.1 (October 4, 2026)
+**Truncation Fix & File Splitting**
+
+**Fixed:**
+- ✅ Response truncation when creating large files (>2000 lines)
+- ✅ Incomplete [TOOL] tags detection and recovery
+- ✅ Multi-stage retry system for truncated responses
+
+**Added:**
+- ✅ Proactive file splitting guidance (400-line limit per file)
+- ✅ Three-tier retry system with increasing guidance
+- ✅ Examples of proper file separation (HTML + CSS + JS)
+- ✅ Improved system prompts for both normal and Smart Structure modes
+
+**Technical:**
+- Increased retry maxTokens: 8000 → 16000 for multiple files
+- Works on any iteration (not just first one)
+- Better code organization following web standards
+- Prevents model from creating monolithic files
+
 ### v1.0.0 (September 30, 2026)
 **Initial Release**
 
