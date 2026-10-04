@@ -357,9 +357,9 @@ export class AgentLoop {
         messages: [
           {
             role: 'system',
-            content: `You are STRAK AGENT in SMART STRUCTURE MODE. Create a MIND MAP plan.
+            content: `You are STRAK AGENT in SMART STRUCTURE MODE. Create a BRIEF MIND MAP plan.
 
-FORMAT YOUR PLAN AS A MIND MAP:
+FORMAT YOUR PLAN AS A MIND MAP (KEEP IT SHORT!):
 
 [NODE: root]
 title: Main Goal
@@ -375,27 +375,19 @@ tool: web_search
 status: planned
 [/NODE]
 
-[NODE: child]
-parent: root
-title: Step 2 - Create Files
-description: Write code files
-tool: write_file
-status: planned
-[/NODE]
+CRITICAL RULES:
+1. Keep plan VERY SHORT - maximum 5 nodes total
+2. Each node: title, description, status (all required)
+3. Focus on HIGH-LEVEL steps only
+4. NO detailed explanations or code in the plan
+5. Use simple, clear language
 
-RULES:
-1. Start with ONE root node (the main goal)
-2. Add child nodes for each major step
-3. Each node must have: title, description, status
-4. Keep it SHORT and FOCUSED (max 8 nodes total)
-5. Use clear, actionable titles
-
-NOW CREATE MIND MAP for: ${userInput}`
+NOW CREATE BRIEF MIND MAP for: ${userInput}`
           }
         ],
-        temperature: 0.7,
-        maxTokens: 2000,
-        tools: undefined // No function calling for planning
+        temperature: 0.5,
+        maxTokens: 1000, // Short plan only!
+        tools: undefined
       };
       
       try {
@@ -405,76 +397,112 @@ NOW CREATE MIND MAP for: ${userInput}`
         
         const planResponse = await this.llmRouter.chat(planningRequest);
         
-        // Parse mind map nodes from response
-        const nodes = this.parseMindMapNodes(planResponse.content || '', userInput);
-        
-        // Create plan structure
-        const plan = structureThinking.createPlan(userInput);
-        
-        // Add nodes to plan
-        if (nodes.length > 0) {
-          console.log(`[MindMap] Created ${nodes.length} nodes`);
+        if (!planResponse || !planResponse.content) {
+          console.warn('[Planning] Empty response from planning request');
+          if (ui) {
+            ui.warning('Planning failed, continuing without plan...');
+          }
+        } else {
+          // Parse mind map nodes from response
+          const nodes = this.parseMindMapNodes(planResponse.content, userInput);
           
-          // Add nodes to structure thinking
-          for (const node of nodes) {
-            if (node.parent) {
-              try {
-                structureThinking.addNode(node.parent, {
-                  type: 'action',
-                  title: node.title,
-                  description: node.description,
-                  status: 'planned',
-                  metadata: { tool: node.tool }
-                });
-              } catch (e) {
-                // Parent not found, add to root
-                structureThinking.addNode('root', {
-                  type: 'action',
-                  title: node.title,
-                  description: node.description,
-                  status: 'planned',
-                  metadata: { tool: node.tool }
-                });
+          // Create plan structure
+          const plan = structureThinking.createPlan(userInput);
+          
+          // Add nodes to plan
+          if (nodes.length > 0) {
+            console.log(`[MindMap] Created ${nodes.length} nodes`);
+            
+            // Add nodes to structure thinking
+            for (const node of nodes) {
+              if (node.parent) {
+                try {
+                  structureThinking.addNode(node.parent, {
+                    type: 'action',
+                    title: node.title,
+                    description: node.description,
+                    status: 'planned',
+                    metadata: { tool: node.tool }
+                  });
+                } catch (e) {
+                  // Parent not found, add to root
+                  structureThinking.addNode('root', {
+                    type: 'action',
+                    title: node.title,
+                    description: node.description,
+                    status: 'planned',
+                    metadata: { tool: node.tool }
+                  });
+                }
               }
             }
           }
-        }
-        
-        // Display the plan
-        if (ui && planResponse.content) {
-          ui.aiReasoning(planResponse.content);
           
-          // Show Smart Structure visualization info
-          const serverUrl = 'http://localhost:3737';
-          console.log(chalk.cyan('╔' + '═'.repeat(68) + '╗'));
-          console.log(chalk.cyan('║') + chalk.yellow.bold(' 🧠 Mind Map Visualization') + ' '.repeat(42) + chalk.cyan('║'));
-          console.log(chalk.cyan('╠' + '═'.repeat(68) + '╣'));
-          console.log(chalk.cyan('║') + chalk.white(' Open in browser: ') + chalk.green.underline(serverUrl) + ' '.repeat(32) + chalk.cyan('║'));
-          console.log(chalk.cyan('║') + ' '.repeat(68) + chalk.cyan('║'));
-          console.log(chalk.cyan('║') + chalk.gray(' Watch the mind map update in real-time!') + ' '.repeat(28) + chalk.cyan('║'));
-          console.log(chalk.cyan('╚' + '═'.repeat(68) + '╝'));
-          console.log('');
+          // Display the plan
+          if (ui && planResponse.content) {
+            ui.aiReasoning(planResponse.content);
+            
+            // Show Smart Structure visualization info
+            const serverUrl = 'http://localhost:3737';
+            console.log(chalk.cyan('╔' + '═'.repeat(68) + '╗'));
+            console.log(chalk.cyan('║') + chalk.yellow.bold(' 🧠 Mind Map Created') + ' '.repeat(47) + chalk.cyan('║'));
+            console.log(chalk.cyan('╠' + '═'.repeat(68) + '╣'));
+            console.log(chalk.cyan('║') + chalk.white(' View at: ') + chalk.green.underline(serverUrl) + ' '.repeat(38) + chalk.cyan('║'));
+            console.log(chalk.cyan('║') + chalk.gray(' Now executing the plan...') + ' '.repeat(43) + chalk.cyan('║'));
+            console.log(chalk.cyan('╚' + '═'.repeat(68) + '╝'));
+            console.log('');
+          }
         }
-        
-        // Add plan to conversation context
-        this.sessionManager.addMessage({
-          role: 'assistant',
-          content: `[MIND MAP CREATED - ${nodes.length} nodes]\n${planResponse.content}\n\n[NOW EXECUTING PLAN]`
-        });
       } catch (planError: any) {
         if (ui) {
           ui.warning(`Planning failed: ${planError.message}. Continuing without plan...`);
         }
-        console.error('[Planning Error]', planError.stack || planError);
+        console.error('[Planning Error]', planError.message);
       }
     }
 
     // Add system message if first interaction
     const messages = this.sessionManager.getMessages();
-    if (messages.length === 1) {
-      this.sessionManager.addMessage({
-        role: 'system',
-        content: `You are STRAK AGENT, a powerful AI assistant with access to 200+ tools.
+    if (messages.length === 1 || (messages.length === 2 && smartStructureEnabled)) {
+      // If Smart Structure enabled and we just added user message, add clear instruction
+      const systemContent = smartStructureEnabled 
+        ? `You are STRAK AGENT. A plan has been created. NOW YOU MUST EXECUTE IT.
+
+IMPORTANT: The planning phase is COMPLETE. You must now USE TOOLS to execute the plan.
+
+To use tools, write them in this TEXT FORMAT:
+
+[TOOL: tool_name]
+parameter1: value1
+parameter2: value2
+[/TOOL]
+
+EXAMPLES:
+
+Create a file with multiline content:
+[TOOL: write_file]
+path: index.html
+content: <!DOCTYPE html>
+<html>
+<head><title>My App</title></head>
+<body><h1>Hello</h1></body>
+</html>
+[/TOOL]
+
+Search the web:
+[TOOL: web_search]
+query: latest Bitcoin price
+[/TOOL]
+
+Run terminal command:
+[TOOL: terminal]
+command: ls -la
+[/TOOL]
+
+CRITICAL: You MUST use [TOOL] tags to execute actions. Do NOT just talk about what you will do - DO IT NOW!
+
+Start executing the plan immediately using the appropriate tools.`
+        : `You are STRAK AGENT, a powerful AI assistant with access to 200+ tools.
 
 IMPORTANT: To use tools, write them in this TEXT FORMAT (NOT function calls):
 
@@ -544,7 +572,11 @@ AVAILABLE TOOLS CATEGORIES:
 
 When you need a tool from a category, use list_category_tools or get_tool_info to discover available tools.
 
-Be efficient and only use necessary tools. Explain your thought process.`
+Be efficient and only use necessary tools. Explain your thought process.`;
+
+      this.sessionManager.addMessage({
+        role: 'system',
+        content: systemContent
       });
     }
 
