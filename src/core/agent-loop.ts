@@ -400,7 +400,7 @@ NOW CREATE BRIEF MIND MAP for: ${userInput}`
         if (!planResponse || !planResponse.content) {
           console.warn('[Planning] Empty response from planning request');
           if (ui) {
-            ui.warning('Planning failed, continuing without plan...');
+            ui.info('[Warning] Planning failed, continuing without plan...');
           }
         } else {
           // Parse mind map nodes from response
@@ -455,7 +455,7 @@ NOW CREATE BRIEF MIND MAP for: ${userInput}`
         }
       } catch (planError: any) {
         if (ui) {
-          ui.warning(`Planning failed: ${planError.message}. Continuing without plan...`);
+          ui.info(`[Warning] Planning failed: ${planError.message}. Continuing without plan...`);
         }
         console.error('[Planning Error]', planError.message);
       }
@@ -678,7 +678,7 @@ Be efficient and only use necessary tools. Explain your thought process.`;
             // First iteration with empty response - LLM might not understand format
             if (ui) {
               ui.stopThinking();
-              ui.warning('Received empty response, trying again with simpler prompt...');
+              ui.info('[Warning] Received empty response, trying again with simpler prompt...');
             }
             
             // Try again with ultra-simple prompt
