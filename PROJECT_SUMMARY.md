@@ -1,8 +1,9 @@
 # 📋 STRAK AGENT - Complete Project Summary
 
 **Project:** STRAK AGENT - AI Agent with 200+ Tools  
-**Version:** 1.0.0  
+**Version:** 1.0.6  
 **Created:** September 30, 2026  
+**Last Updated:** October 4, 2026  
 **Architecture:** Chimera (Claude Code + OpenClaw + Hermes)
 
 ---
@@ -600,6 +601,60 @@ strak
 ---
 
 ## 📝 Changelog
+
+### v1.0.6 (October 4, 2026)
+**2-Agent Smart Structure System**
+
+**MAJOR CHANGE - Split Planning from Execution:**
+- ✅ Smart Structure now uses 2 separate agents
+- ✅ Agent 1 (Planning): Creates simple plan, saves to file, asks user
+- ✅ Agent 2 (Execution): Reads plan, executes step-by-step with tools
+- ✅ Eliminates timeout errors from complex planning phase
+
+**How It Works:**
+
+**Agent 1 - Planning Phase:**
+1. User enables Smart Structure mode
+2. Agent 1 creates simple plan (max 5 steps, max 500 tokens)
+3. Plan saved to `.strak-plan.txt`
+4. User prompted with 3 options:
+   - Execute now (launch Agent 2)
+   - Save only (exit)
+   - Cancel
+
+**Agent 2 - Execution Phase:**
+1. Fresh session launched with plan as context
+2. Reads plan from `.strak-plan.txt`
+3. Executes step-by-step using tools
+4. Complete code generation (not skeleton!)
+
+**Example Plan Format:**
+```
+1. Create HTML structure - Basic HTML5 template with canvas
+2. Add CSS styling - Game board, colors, responsive design
+3. Implement game logic - Snake movement, collision, scoring
+4. Add controls - Keyboard input handling
+5. Test and polish - Final adjustments
+```
+
+**Problem Solved:**
+- ❌ Before: Planning phase caused "No response received" timeout
+- ✅ Now: Planning is quick (<500 tokens), execution has full context
+- ❌ Before: Single agent tried to plan AND execute (too complex)
+- ✅ Now: Separated concerns - plan first, then execute
+
+**Technical:**
+- Planning maxTokens: 500 (very short!)
+- Execution maxTokens: 16000 (full code generation)
+- Fresh session for Agent 2 prevents context pollution
+- Plan file persists for review/debugging
+
+**Benefits:**
+- ⚡ No more planning timeouts
+- 🎯 Clear separation of concerns
+- 💾 Plan saved for user review
+- 🔄 User control over execution
+- 🧠 Agent 2 has full plan context
 
 ### v1.0.5 (October 4, 2026)
 **CRITICAL FIX - Force Complete Code Generation**
